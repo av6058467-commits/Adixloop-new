@@ -2,6 +2,7 @@ using UnityEngine;
 using AdixBattleRoyale.Combat;
 using AdixBattleRoyale.Player;
 using AdixBattleRoyale.World;
+using AdixBattleRoyale.Gameplay;
 
 namespace AdixBattleRoyale.Player
 {
@@ -13,6 +14,7 @@ namespace AdixBattleRoyale.Player
         [SerializeField] private MobilePlayerController player;
         [SerializeField] private ThirdPersonCameraRig cameraRig;
         [SerializeField] private PlayerWeapon weapon;
+        [SerializeField] private PlayerUtilityActions utilityActions;
 
         [Header("Vehicle")]
         [SerializeField] private VehicleInteraction vehicleInteraction;
@@ -30,6 +32,8 @@ namespace AdixBattleRoyale.Player
 
         public void FirePressed() => weapon?.Fire();
         public void ReloadPressed() => weapon?.Reload();
+        public void ThrowGrenadePressed() => utilityActions?.ThrowGrenade();
+        public void UseMedkitPressed() => utilityActions?.UseMedkit();
         public void JumpPressed() => player?.Jump();
         public void ToggleCameraPressed() => cameraRig?.ToggleCameraMode();
         public void SetLookInput(Vector2 value) => cameraRig?.SetLookInput(value);
