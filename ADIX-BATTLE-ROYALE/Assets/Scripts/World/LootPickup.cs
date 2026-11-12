@@ -30,7 +30,7 @@ namespace AdixBattleRoyale.World
             switch (lootType)
             {
                 case LootType.Health:
-                    if (health != null && health.IsAlive && health.Health < 100f)
+                    if (health != null && health.IsAlive && health.Health < health.MaxHealth)
                     {
                         health.Heal(amount);
                         applied = true;
