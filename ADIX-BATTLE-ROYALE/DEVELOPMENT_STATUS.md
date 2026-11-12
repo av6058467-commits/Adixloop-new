@@ -36,3 +36,12 @@
 
 ## Verification honesty
 The checked items above are source-code foundations only. Unity Editor compilation, scene/prefab integration, Android APK generation and real-device gameplay have **not** been verified. Therefore this is not yet a playable demo and must not be presented as 90% complete.
+
+### Original emote system foundation added
+- [x] Emote definition assets with categories, icons, animation state, duration, loop and mode availability
+- [x] Runtime emote controller with combat/weapon checks, timed stop and start/end events
+- [x] Eight-slot emote wheel presenter with equip/select and safe listener cleanup
+- [ ] Author original rigged animation clips (Tornado Royal Entry, Gun Showcase, Weapon Inspect, Victory Reload, Air Pose)
+- [ ] Wire emote preview/equip UI into lobby and wheel into BR/CS/BRCS/Training HUD
+- [ ] Add original emote icons, VFX, sound and mission-coin unlock inventory
+- [ ] Test every emote on all operator rigs and Android device
