@@ -19,6 +19,7 @@ namespace AdixBattleRoyale.Player
 
         public bool IsFirstPerson => firstPerson;
         public void SetLookInput(Vector2 input) => lookInput = input;
+        public void SetSensitivity(float value) => sensitivity = Mathf.Clamp(value, 0.01f, 1.5f);
         public void ToggleCameraMode() => firstPerson = !firstPerson;
 
         private void LateUpdate()
