@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using UnityEngine;
 using AdixBattleRoyale.Combat;
+using AdixBattleRoyale.Audio;
 
 namespace AdixBattleRoyale.Combat
 {
@@ -22,9 +23,11 @@ namespace AdixBattleRoyale.Combat
         public event Action<int, int> AmmoChanged;
         public event Action<Vector3> HitConfirmed;
         private float nextShotTime;
+        private GunAudioController gunAudio;
 
         private void Awake()
         {
+            gunAudio = GetComponent<GunAudioController>();
             Ammo = magazineSize;
             if (aimCamera == null) aimCamera = Camera.main;
             AmmoChanged?.Invoke(Ammo, ReserveAmmo);
@@ -32,7 +35,8 @@ namespace AdixBattleRoyale.Combat
 
         public void Fire()
         {
-            if (IsReloading || Time.time < nextShotTime || Ammo <= 0 || aimCamera == null) return;
+            if (IsReloading || Time.time < nextShotTime || aimCamera == null) return;
+            if (Ammo <= 0) { gunAudio?.PlayEmpty(); return; }
             nextShotTime = Time.time + 1f / shotsPerSecond;
             Ammo--;
             AmmoChanged?.Invoke(Ammo, ReserveAmmo);
