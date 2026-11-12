@@ -14,6 +14,8 @@
 - [x] Health, armor and ammo pickup logic
 - [x] Rigidbody/WheelCollider vehicle driving and seat enter/exit
 - [x] Arcade helicopter flight controller
+- [x] Bot tactical cover/flank decisions with NavMesh sampling
+- [x] Mobile HUD bridge for vehicle throttle, steering, brake and helicopter axes
 - [x] Unity project package manifest and editor-version metadata
 
 ### Still required before a playable 90% demo
@@ -21,7 +23,7 @@
 - [ ] Bake and validate island/city NavMesh; tune bot navigation and combat
 - [ ] Implement cover/flanking behavior and bot variety across all tiers
 - [ ] Finish HUD, touch layout, inventory, loot spawning and match flow
-- [ ] Finish car/helicopter seat controls and camera transitions
+- [ ] Finish car/helicopter seat camera transitions and fully bind HUD widgets
 - [ ] Add map geometry, safe-zone ring visuals and environment art
 - [ ] Configure Android player settings, icons, permissions and build pipeline
 - [ ] Compile in Unity, resolve all compiler/runtime errors
