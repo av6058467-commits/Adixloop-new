@@ -1,20 +1,27 @@
 using UnityEngine;
 using AdixBattleRoyale.Combat;
 using AdixBattleRoyale.Player;
+using AdixBattleRoyale.World;
 
 namespace AdixBattleRoyale.Player
 {
-    /// <summary>Connect UI joystick/look-pad values to movement and camera scripts.</summary>
+    /// <summary>Central bridge from mobile HUD controls to player and vehicle systems.</summary>
     public sealed class MobileInputBridge : MonoBehaviour
     {
+        [Header("Player")]
         [SerializeField] private VirtualJoystick moveJoystick;
         [SerializeField] private MobilePlayerController player;
         [SerializeField] private ThirdPersonCameraRig cameraRig;
         [SerializeField] private PlayerWeapon weapon;
 
+        [Header("Vehicle")]
+        [SerializeField] private VehicleInteraction vehicleInteraction;
+        [SerializeField] private VehicleDrive vehicleDrive;
+        [SerializeField] private HelicopterController helicopter;
+
         private void Update()
         {
-            if (moveJoystick != null && player != null)
+            if (moveJoystick != null && player != null && player.enabled)
                 player.SetMoveInput(moveJoystick.Value);
         }
 
@@ -26,5 +33,34 @@ namespace AdixBattleRoyale.Player
         public void SprintDown() => player?.SetSprint(true);
         public void SprintUp() => player?.SetSprint(false);
         public void ToggleCrouchPressed() => player?.ToggleCrouch();
+        public void InteractVehiclePressed() => vehicleInteraction?.EnterOrExitVehicle();
+
+        // Connect gas/reverse, steering and brake UI controls to these methods.
+        public void SetVehicleThrottle(float value)
+        {
+            if (vehicleDrive != null) vehicleDrive.SetInput(value, 0f, false);
+        }
+
+        public void SetVehicleSteering(float value)
+        {
+            if (vehicleDrive != null) vehicleDrive.SetInput(0f, value, false);
+        }
+
+        public void VehicleBrakeDown()
+        {
+            if (vehicleDrive != null) vehicleDrive.SetInput(0f, 0f, true);
+        }
+
+        public void VehicleControlsReleased()
+        {
+            if (vehicleDrive != null) vehicleDrive.SetInput(0f, 0f, false);
+        }
+
+        // Helicopter HUD sliders/buttons supply normalized axis values.
+        public void SetHelicopterInput(Vector4 axes)
+        {
+            if (helicopter != null)
+                helicopter.SetFlightInput(axes.x, axes.y, axes.z, axes.w);
+        }
     }
 }
