@@ -16,13 +16,17 @@
 - [x] Arcade helicopter flight controller
 - [x] Bot tactical cover/flank decisions with NavMesh sampling
 - [x] Mobile HUD bridge for vehicle throttle, steering, brake and helicopter axes
+- [x] Grenade throw and timed radial damage action
+- [x] Medkit healing action with limited charges
+- [x] Match victory/defeat overlay foundation
+- [x] Demo scene wired with grenade/medkit buttons and 50-bot target count
 - [x] Unity project package manifest and editor-version metadata
 
 ### Still required before a playable 90% demo
 - [ ] Complete Unity scenes, prefabs, materials, models, animations and audio
 - [ ] Bake and validate island/city NavMesh; tune bot navigation and combat
 - [ ] Implement cover/flanking behavior and bot variety across all tiers
-- [ ] Finish HUD, touch layout, inventory, loot spawning and match flow
+- [ ] Finish HUD, touch layout, full inventory/weapon switching, loot spawning and restart flow
 - [ ] Finish car/helicopter seat camera transitions and fully bind HUD widgets
 - [ ] Add map geometry, safe-zone ring visuals and environment art
 - [ ] Configure Android player settings, icons, permissions and build pipeline
