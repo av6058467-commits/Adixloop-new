@@ -12,6 +12,10 @@ namespace AdixBattleRoyale.Combat
         [SerializeField, Min(1f)] private float range = 260f;
         [SerializeField, Min(0f)] private float baseDamage = 8f;
 
+        private Transform botRoot;
+
+        private void Awake() => botRoot = transform.root;
+
         public void SetTarget(Transform newTarget) => target = newTarget;
 
         public void Fire(float accuracy, float damageMultiplier)
@@ -34,7 +38,7 @@ namespace AdixBattleRoyale.Combat
 
             foreach (RaycastHit hit in hits)
             {
-                if (hit.transform == transform || hit.transform.IsChildOf(transform))
+                if (hit.transform == botRoot || hit.transform.IsChildOf(botRoot))
                     continue;
 
                 PlayerHealth health = hit.collider.GetComponentInParent<PlayerHealth>();
