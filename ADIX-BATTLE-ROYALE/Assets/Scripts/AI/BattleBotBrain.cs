@@ -39,8 +39,28 @@ namespace AdixBattleRoyale.AI
         public void Configure(Transform playerTarget, BotDifficultyTier tier)
         {
             target = playerTarget;
-            difficulty = tier;
+            difficulty = tier != null ? tier : CreateFallbackDifficulty();
             ApplyDifficulty();
+        }
+
+        private static BotDifficultyTier CreateFallbackDifficulty()
+        {
+            // Keeps a bot functional in a prototype scene even before designer
+            // difficulty assets have been authored and assigned.
+            BotDifficultyTier fallback = ScriptableObject.CreateInstance<BotDifficultyTier>();
+            fallback.level = 1;
+            fallback.accuracy = 0.28f;
+            fallback.reactionTime = 1.65f;
+            fallback.detectionRange = 42f;
+            fallback.preferredCombatRange = 20f;
+            fallback.aimSpreadDegrees = 6f;
+            fallback.movementSpeed = 3.4f;
+            fallback.decisionInterval = 0.8f;
+            fallback.coverUsage = 0.12f;
+            fallback.flankChance = 0.08f;
+            fallback.healthMultiplier = 1f;
+            fallback.damageMultiplier = 1f;
+            return fallback;
         }
 
         public void ApplyDifficulty()
