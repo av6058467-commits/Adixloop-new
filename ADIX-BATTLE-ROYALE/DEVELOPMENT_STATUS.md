@@ -1,16 +1,32 @@
 # ADIX BATTLE ROYALE — Development Status
 
-## First milestone: core offline gameplay foundation
-- [x] Offline bot difficulty tiers and local progression storage
-- [x] Bot brain foundation: detect, chase, engage, search, patrol
-- [x] Match director foundation for spawning up to 50 bot instances
-- [x] Bot health and elimination hook
-- [ ] Unity project metadata, packages and playable scene
-- [ ] Player movement, camera and mobile touch controls
-- [ ] Weapon firing, hit validation, ammo and loot
-- [ ] Map, safe zone, UI, audio and animations
-- [ ] Vehicle and helicopter systems
-- [ ] Android build and real-device performance testing
+## Current milestone: offline gameplay foundation
 
-## Important
-The checked items are source-code foundations committed to GitHub, not proof of a complete playable game. The game is not 50% complete and no APK has been built yet. The next work is to assemble a real Unity project and wire/test these systems in scenes and prefabs. A 50-bot match must be profiled on the target Android device; start with fewer active bots if frame rate or memory becomes unstable.
+### Source systems committed
+- [x] Bot difficulty tiers and local performance-based progression
+- [x] Bot AI foundation: detection, chase, engage, search and patrol
+- [x] Match director spawning configurable bot count (target: 50)
+- [x] Bot/player health and shared damage interface
+- [x] Player hitscan weapon, magazine, reserve ammo and reload
+- [x] Mobile player movement, camera mode and touch-input foundations
+- [x] Bot weapon event hookup and self-collider filtering
+- [x] Shrinking safe-zone logic and outside-zone damage
+- [x] Health, armor and ammo pickup logic
+- [x] Rigidbody/WheelCollider vehicle driving and seat enter/exit
+- [x] Arcade helicopter flight controller
+- [x] Unity project package manifest and editor-version metadata
+
+### Still required before a playable 90% demo
+- [ ] Complete Unity scenes, prefabs, materials, models, animations and audio
+- [ ] Bake and validate island/city NavMesh; tune bot navigation and combat
+- [ ] Implement cover/flanking behavior and bot variety across all tiers
+- [ ] Finish HUD, touch layout, inventory, loot spawning and match flow
+- [ ] Finish car/helicopter seat controls and camera transitions
+- [ ] Add map geometry, safe-zone ring visuals and environment art
+- [ ] Configure Android player settings, icons, permissions and build pipeline
+- [ ] Compile in Unity, resolve all compiler/runtime errors
+- [ ] Profile memory, heat and FPS on the target Android phone
+- [ ] Build and install an APK; complete full match play-test
+
+## Verification honesty
+The checked items above are source-code foundations only. Unity Editor compilation, scene/prefab integration, Android APK generation and real-device gameplay have **not** been verified. Therefore this is not yet a playable demo and must not be presented as 90% complete.
