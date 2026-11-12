@@ -18,6 +18,9 @@ namespace AdixBattleRoyale.Player
         [SerializeField] private VehicleInteraction vehicleInteraction;
         [SerializeField] private VehicleDrive vehicleDrive;
         [SerializeField] private HelicopterController helicopter;
+        private float vehicleThrottle;
+        private float vehicleSteering;
+        private bool vehicleBraking;
 
         private void Update()
         {
@@ -38,22 +41,39 @@ namespace AdixBattleRoyale.Player
         // Connect gas/reverse, steering and brake UI controls to these methods.
         public void SetVehicleThrottle(float value)
         {
-            if (vehicleDrive != null) vehicleDrive.SetInput(value, 0f, false);
+            vehicleThrottle = Mathf.Clamp(value, -1f, 1f);
+            ApplyVehicleInput();
         }
 
         public void SetVehicleSteering(float value)
         {
-            if (vehicleDrive != null) vehicleDrive.SetInput(0f, value, false);
+            vehicleSteering = Mathf.Clamp(value, -1f, 1f);
+            ApplyVehicleInput();
         }
 
         public void VehicleBrakeDown()
         {
-            if (vehicleDrive != null) vehicleDrive.SetInput(0f, 0f, true);
+            vehicleBraking = true;
+            ApplyVehicleInput();
+        }
+
+        public void VehicleBrakeUp()
+        {
+            vehicleBraking = false;
+            ApplyVehicleInput();
         }
 
         public void VehicleControlsReleased()
         {
-            if (vehicleDrive != null) vehicleDrive.SetInput(0f, 0f, false);
+            vehicleThrottle = vehicleSteering = 0f;
+            vehicleBraking = false;
+            ApplyVehicleInput();
+        }
+
+        private void ApplyVehicleInput()
+        {
+            if (vehicleDrive != null)
+                vehicleDrive.SetInput(vehicleThrottle, vehicleSteering, vehicleBraking);
         }
 
         // Helicopter HUD sliders/buttons supply normalized axis values.
