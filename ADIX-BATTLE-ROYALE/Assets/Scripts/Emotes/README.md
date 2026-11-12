@@ -26,3 +26,10 @@ This module provides the gameplay foundation for original, unlockable character 
 - Verify Animator state names exist on each operator controller.
 - Verify wheel open/close, all eight slots, rapid re-selection and scene unload.
 - Profile animation and particle effects on the target Android device.
+
+## Medkit emote integration
+- `EmoteCategory.Healing` and `AllowDuringHealing` identify emotes permitted while the medkit action is active.
+- `PlayerUtilityActions` can be assigned a dedicated medkit emote and plays it during the configurable 2.5-second medkit use window; healing is applied when the action completes.
+- Assign a healing animation state such as `Emote_Medkit_Heal` on the operator Animator and mark the emote as category Healing, allowed during healing, and available in the desired modes.
+- If no healing emote is assigned, the medkit still completes normally after the use duration.
+- Cancel/disable cleanup stops the emote and clears the healing state.
