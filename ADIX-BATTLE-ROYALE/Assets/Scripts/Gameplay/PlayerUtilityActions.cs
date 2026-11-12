@@ -10,7 +10,8 @@ namespace AdixBattleRoyale.Gameplay
         [SerializeField] private PlayerHealth health;
         [SerializeField] private Transform throwOrigin;
         [SerializeField] private EmoteController emoteController;
-        [SerializeField] private EmoteDefinition medkitEmote;
+        [SerializeField] private EmoteDefinition[] healingEmoteSlots = new EmoteDefinition[8];
+        [SerializeField, Range(0, 7)] private int selectedHealingEmoteSlot;
         [SerializeField, Min(0.1f)] private float medkitUseDuration = 2.5f;
         [SerializeField, Min(1f)] private float grenadeDamage = 85f;
         [SerializeField, Min(1f)] private float grenadeRadius = 7f;
@@ -25,6 +26,23 @@ namespace AdixBattleRoyale.Gameplay
         public int Grenades => grenades;
         public int Medkits => medkits;
         public bool IsUsingMedkit => isUsingMedkit;
+        public int SelectedHealingEmoteSlot => selectedHealingEmoteSlot;
+        public EmoteDefinition SelectedHealingEmote => healingEmoteSlots != null && selectedHealingEmoteSlot >= 0 && selectedHealingEmoteSlot < healingEmoteSlots.Length ? healingEmoteSlots[selectedHealingEmoteSlot] : null;
+
+        public bool SelectHealingEmote(int slot)
+        {
+            if (slot < 0 || slot >= 8 || healingEmoteSlots == null || slot >= healingEmoteSlots.Length || healingEmoteSlots[slot] == null) return false;
+            if (healingEmoteSlots[slot].Category != EmoteCategory.Healing) return false;
+            selectedHealingEmoteSlot = slot;
+            return true;
+        }
+
+        public void SetHealingEmote(int slot, EmoteDefinition emote)
+        {
+            if (slot < 0 || slot >= 8 || healingEmoteSlots == null || slot >= healingEmoteSlots.Length) return;
+            if (emote != null && emote.Category != EmoteCategory.Healing) return;
+            healingEmoteSlots[slot] = emote;
+        }
 
         private void Awake()
         {
@@ -75,8 +93,9 @@ namespace AdixBattleRoyale.Gameplay
             if (emoteController != null)
             {
                 emoteController.SetHealingState(true);
-                if (medkitEmote != null)
-                    emoteController.Play(medkitEmote);
+                EmoteDefinition chosenEmote = SelectedHealingEmote;
+                if (chosenEmote != null)
+                    emoteController.Play(chosenEmote);
             }
             medkitRoutine = StartCoroutine(CompleteMedkitUse());
         }
