@@ -8,6 +8,7 @@ namespace AdixBattleRoyale.Combat
         [SerializeField, Min(1f)] private float maxHealth = 100f;
         [SerializeField, Min(0f)] private float maxArmor = 100f;
         public float Health { get; private set; }
+        public float MaxHealth => maxHealth;
         public float Armor { get; private set; }
         public bool IsAlive => Health > 0f;
         public event Action<float, float> HealthChanged;
