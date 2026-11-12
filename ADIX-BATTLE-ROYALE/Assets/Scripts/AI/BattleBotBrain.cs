@@ -170,8 +170,14 @@ namespace AdixBattleRoyale.AI
                            (UnityEngine.Random.value < 0.5f ? -1f : 1f);
             Vector3 candidate = target.position + side * flankDistance -
                                 toTarget * (flankDistance * 0.35f);
-            return NavMesh.SamplePosition(candidate, out NavMeshHit hit,
-                flankDistance, NavMesh.AllAreas) && (destination = hit.position) == hit.position;
+            if (NavMesh.SamplePosition(candidate, out NavMeshHit hit,
+                    flankDistance, NavMesh.AllAreas))
+            {
+                destination = hit.position;
+                return true;
+            }
+            destination = default;
+            return false;
         }
 
         private bool TryFindCover(out Vector3 destination)
