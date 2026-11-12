@@ -45,3 +45,10 @@ The checked items above are source-code foundations only. Unity Editor compilati
 - [ ] Wire emote preview/equip UI into lobby and wheel into BR/CS/BRCS/Training HUD
 - [ ] Add original emote icons, VFX, sound and mission-coin unlock inventory
 - [ ] Test every emote on all operator rigs and Android device
+
+### Nearby target assist foundation added
+- [x] Optional Auto Aim and Auto Fire switches with nearby hostile detection, aim cone, range and line-of-sight checks
+- [ ] Bind switches and sliders in gameplay settings/HUD
+- [ ] Configure hostile target layers and test bot target filtering
+- [ ] Tune aim speed, range and fire interval for fair offline gameplay on Android
+- [ ] Compile and device-test; not yet Unity-verified
