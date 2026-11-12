@@ -1,6 +1,7 @@
 using System.Collections;
 using UnityEngine;
 using AdixBattleRoyale.Combat;
+using AdixBattleRoyale.Emotes;
 
 namespace AdixBattleRoyale.Gameplay
 {
@@ -8,24 +9,33 @@ namespace AdixBattleRoyale.Gameplay
     {
         [SerializeField] private PlayerHealth health;
         [SerializeField] private Transform throwOrigin;
+        [SerializeField] private EmoteController emoteController;
+        [SerializeField] private EmoteDefinition medkitEmote;
+        [SerializeField, Min(0.1f)] private float medkitUseDuration = 2.5f;
         [SerializeField, Min(1f)] private float grenadeDamage = 85f;
         [SerializeField, Min(1f)] private float grenadeRadius = 7f;
         [SerializeField, Min(0f)] private float grenadeFuse = 2.2f;
         [SerializeField, Min(0f)] private float throwForce = 12f;
         [SerializeField] private int grenades = 2;
         [SerializeField] private int medkits = 2;
+
+        private Coroutine medkitRoutine;
+        private bool isUsingMedkit;
+
         public int Grenades => grenades;
         public int Medkits => medkits;
+        public bool IsUsingMedkit => isUsingMedkit;
 
         private void Awake()
         {
             if (health == null) health = GetComponent<PlayerHealth>();
+            if (emoteController == null) emoteController = GetComponent<EmoteController>();
             if (throwOrigin == null && Camera.main != null) throwOrigin = Camera.main.transform;
         }
 
         public void ThrowGrenade()
         {
-            if (grenades <= 0 || throwOrigin == null) return;
+            if (grenades <= 0 || throwOrigin == null || isUsingMedkit) return;
             grenades--;
             var grenade = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             grenade.name = "ADIX Grenade";
@@ -57,12 +67,51 @@ namespace AdixBattleRoyale.Gameplay
 
         public void UseMedkit()
         {
-            if (health == null || medkits <= 0 || !health.IsAlive || health.Health >= health.MaxHealth) return;
+            if (isUsingMedkit || health == null || medkits <= 0 || !health.IsAlive || health.Health >= health.MaxHealth)
+                return;
+
             medkits--;
-            health.Heal(45f);
+            isUsingMedkit = true;
+            if (emoteController != null)
+            {
+                emoteController.SetHealingState(true);
+                if (medkitEmote != null)
+                    emoteController.Play(medkitEmote);
+            }
+            medkitRoutine = StartCoroutine(CompleteMedkitUse());
+        }
+
+        private IEnumerator CompleteMedkitUse()
+        {
+            yield return new WaitForSeconds(medkitUseDuration);
+            if (health != null && health.IsAlive)
+                health.Heal(45f);
+
+            if (emoteController != null)
+            {
+                emoteController.Stop();
+                emoteController.SetHealingState(false);
+            }
+            isUsingMedkit = false;
+            medkitRoutine = null;
         }
 
         public void AddGrenades(int amount) => grenades = Mathf.Clamp(grenades + amount, 0, 6);
         public void AddMedkits(int amount) => medkits = Mathf.Clamp(medkits + amount, 0, 5);
+
+        private void OnDisable()
+        {
+            if (medkitRoutine != null)
+            {
+                StopCoroutine(medkitRoutine);
+                medkitRoutine = null;
+            }
+            isUsingMedkit = false;
+            if (emoteController != null)
+            {
+                emoteController.Stop();
+                emoteController.SetHealingState(false);
+            }
+        }
     }
 }
