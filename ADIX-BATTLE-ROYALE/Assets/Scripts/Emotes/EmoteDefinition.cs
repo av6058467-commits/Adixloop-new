@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace AdixBattleRoyale.Emotes
 {
-    public enum EmoteCategory { Dance, Victory, Entry, WeaponShowcase, Team, Fun }
+    public enum EmoteCategory { Dance, Victory, Entry, WeaponShowcase, Healing, Team, Fun }
     public enum EmoteGameMode { Any, BattleRoyale, ClashSquad, Hybrid, Training }
 
     [CreateAssetMenu(fileName = "ADIX_Emote", menuName = "ADIX/Emotes/Emote Definition")]
@@ -17,7 +17,7 @@ namespace AdixBattleRoyale.Emotes
         [SerializeField, Min(0f)] private float durationSeconds = 3f;
         [SerializeField] private bool loop;
         [SerializeField] private bool requiresWeapon;
-        [SerializeField] private bool allowInCombat;
+        [SerializeField] private bool allowInCombat;\n        [SerializeField] private bool allowDuringHealing;
         [SerializeField] private EmoteGameMode[] availableModes = { EmoteGameMode.Any };
 
         public string EmoteId => emoteId;
@@ -29,7 +29,7 @@ namespace AdixBattleRoyale.Emotes
         public float DurationSeconds => durationSeconds;
         public bool Loop => loop;
         public bool RequiresWeapon => requiresWeapon;
-        public bool AllowInCombat => allowInCombat;
+        public bool AllowInCombat => allowInCombat;\n        public bool AllowDuringHealing => allowDuringHealing;
 
         public bool IsAvailableIn(EmoteGameMode mode)
         {
