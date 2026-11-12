@@ -13,6 +13,7 @@ using AdixBattleRoyale.Combat;
 using AdixBattleRoyale.Match;
 using AdixBattleRoyale.Player;
 using AdixBattleRoyale.UI;
+using AdixBattleRoyale.Gameplay;
 
 namespace AdixBattleRoyale.Editor
 {
@@ -109,6 +110,7 @@ namespace AdixBattleRoyale.Editor
             controller.center = new Vector3(0f, 0f, 0f);
             root.AddComponent<MobilePlayerController>();
             root.AddComponent<PlayerHealth>();
+            root.AddComponent<PlayerUtilityActions>();
 
             GameObject body = GameObject.CreatePrimitive(PrimitiveType.Capsule);
             body.name = "Player Visual";
@@ -158,7 +160,7 @@ namespace AdixBattleRoyale.Editor
             var director = match.AddComponent<BattleRoyaleMatchDirector>();
             SetObjectReference(director, "player", player.transform);
             SetObjectReference(director, "botPrefab", botPrefab);
-            SetInt(director, "botCount", 12);
+            SetInt(director, "botCount", 50);
 
             Transform[] spawns = new Transform[8];
             for (int i = 0; i < spawns.Length; i++)
@@ -189,6 +191,12 @@ namespace AdixBattleRoyale.Editor
             SetObjectReference(bridge, "player", player.GetComponent<MobilePlayerController>());
             SetObjectReference(bridge, "cameraRig", Camera.main != null ? Camera.main.GetComponent<ThirdPersonCameraRig>() : Object.FindObjectOfType<ThirdPersonCameraRig>());
             SetObjectReference(bridge, "weapon", player.GetComponent<PlayerWeapon>());
+            SetObjectReference(bridge, "utilityActions", player.GetComponent<PlayerUtilityActions>());
+
+            GameObject results = new GameObject("Match Results");
+            var resultOverlay = results.AddComponent<MatchResultOverlay>();
+            SetObjectReference(resultOverlay, "playerHealth", player.GetComponent<PlayerHealth>());
+            SetObjectReference(resultOverlay, "matchDirector", Object.FindObjectOfType<BattleRoyaleMatchDirector>());
 
             RectTransform joystickArea = CreatePanel(canvasObject.transform, "Move Joystick", new Vector2(0.12f, 0.18f), new Vector2(0.12f, 0.18f), new Vector2(180f, 180f), new Color(0.05f, 0.08f, 0.12f, 0.48f));
             RectTransform handle = CreatePanel(joystickArea, "Joystick Handle", new Vector2(0.5f, 0.5f), new Vector2(0.5f, 0.5f), new Vector2(68f, 68f), new Color(0.25f, 0.72f, 1f, 0.85f));
@@ -202,6 +210,8 @@ namespace AdixBattleRoyale.Editor
             CreateActionButton(canvasObject.transform, "AIM / CAMERA", new Vector2(0.88f, 0.42f), bridge, "ToggleCameraPressed", new Vector2(112f, 72f));
             CreateActionButton(canvasObject.transform, "RELOAD", new Vector2(0.75f, 0.16f), bridge, "ReloadPressed", new Vector2(100f, 70f));
             CreateActionButton(canvasObject.transform, "CROUCH", new Vector2(0.65f, 0.16f), bridge, "ToggleCrouchPressed", new Vector2(100f, 70f));
+            CreateActionButton(canvasObject.transform, "GRENADE", new Vector2(0.56f, 0.29f), bridge, "ThrowGrenadePressed", new Vector2(100f, 70f));
+            CreateActionButton(canvasObject.transform, "MEDKIT", new Vector2(0.56f, 0.16f), bridge, "UseMedkitPressed", new Vector2(100f, 70f));
 
             GameObject title = new GameObject("Match Title", typeof(RectTransform), typeof(Text));
             title.transform.SetParent(canvasObject.transform, false);
@@ -265,6 +275,8 @@ namespace AdixBattleRoyale.Editor
                 case "JumpPressed": return bridge.JumpPressed;
                 case "ToggleCameraPressed": return bridge.ToggleCameraPressed;
                 case "ReloadPressed": return bridge.ReloadPressed;
+                case "ThrowGrenadePressed": return bridge.ThrowGrenadePressed;
+                case "UseMedkitPressed": return bridge.UseMedkitPressed;
                 default: return bridge.ToggleCrouchPressed;
             }
         }
