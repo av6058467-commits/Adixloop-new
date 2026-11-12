@@ -18,6 +18,11 @@ namespace AdixBattleRoyale.Match
         public int AliveBots => aliveBots.Count;
         public bool MatchStarted { get; private set; }
 
+        private void Start()
+        {
+            StartOfflineMatch();
+        }
+
         public void StartOfflineMatch()
         {
             if (MatchStarted || player == null || botPrefab == null ||
