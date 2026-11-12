@@ -39,6 +39,7 @@ namespace AdixBattleRoyale.Combat
             if (Ammo <= 0) { gunAudio?.PlayEmpty(); return; }
             nextShotTime = Time.time + 1f / shotsPerSecond;
             Ammo--;
+            gunAudio?.PlayFire();
             AmmoChanged?.Invoke(Ammo, ReserveAmmo);
 
             Ray ray = aimCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
@@ -53,7 +54,10 @@ namespace AdixBattleRoyale.Combat
         public void Reload()
         {
             if (!IsReloading && Ammo < magazineSize && ReserveAmmo > 0)
+            {
+                gunAudio?.PlayReloadStart();
                 StartCoroutine(ReloadRoutine());
+            }
         }
 
         private IEnumerator ReloadRoutine()
@@ -65,6 +69,7 @@ namespace AdixBattleRoyale.Combat
             Ammo += loaded;
             ReserveAmmo -= loaded;
             IsReloading = false;
+            gunAudio?.PlayReloadFinish();
             AmmoChanged?.Invoke(Ammo, ReserveAmmo);
         }
 
