@@ -1,4 +1,5 @@
 using UnityEngine;
+using AdixBattleRoyale.Audio;
 
 namespace AdixBattleRoyale.World
 {
@@ -15,6 +16,7 @@ namespace AdixBattleRoyale.World
         [SerializeField, Min(0f)] private float stabilization = 3f;
 
         private Rigidbody body;
+        private HelicopterRotorAudio rotorAudio;
         private float lift;
         private float pitch;
         private float roll;
@@ -26,13 +28,18 @@ namespace AdixBattleRoyale.World
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
+            rotorAudio = GetComponent<HelicopterRotorAudio>();
             body.useGravity = true;
             body.interpolation = RigidbodyInterpolation.Interpolate;
             if (centerOfMass != null)
                 body.centerOfMass = transform.InverseTransformPoint(centerOfMass.position);
         }
 
-        public void SetPilot(bool value) => occupied = value;
+        public void SetPilot(bool value)
+        {
+            if (value && !occupied) rotorAudio?.PlayStartup();
+            occupied = value;
+        }
 
         // Values are normalized from -1 to 1. Positive lift ascends.
         public void SetFlightInput(float liftInput, float pitchInput, float rollInput, float yawInput)
@@ -50,6 +57,7 @@ namespace AdixBattleRoyale.World
 
         private void FixedUpdate()
         {
+            rotorAudio?.SetRotorPower(occupied ? Mathf.Clamp01(0.65f + Mathf.Abs(lift) * 0.35f) : 0.25f);
             if (!occupied)
             {
                 body.AddTorque(-body.angularVelocity * stabilization, ForceMode.Acceleration);
