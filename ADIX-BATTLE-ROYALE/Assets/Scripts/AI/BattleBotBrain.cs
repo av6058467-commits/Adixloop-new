@@ -6,8 +6,6 @@ namespace AdixBattleRoyale.AI
 {
     public enum BotCombatState { Idle, Search, Chase, Engage }
 
-    // Scene-ready AI foundation. A match director assigns the target and tier.
-    // A weapon component should subscribe to ShotRequested to perform damage.
     [RequireComponent(typeof(NavMeshAgent))]
     public sealed class BattleBotBrain : MonoBehaviour
     {
@@ -16,6 +14,8 @@ namespace AdixBattleRoyale.AI
         [SerializeField] private Transform[] patrolPoints;
         [SerializeField] private LayerMask lineOfSightMask = ~0;
         [SerializeField, Min(0.5f)] private float lostTargetMemory = 5f;
+        [SerializeField, Min(1f)] private float flankDistance = 8f;
+        [SerializeField, Min(1f)] private float coverSearchRadius = 12f;
 
         private NavMeshAgent agent;
         private BotCombatState state = BotCombatState.Idle;
@@ -23,9 +23,10 @@ namespace AdixBattleRoyale.AI
         private float nextShotTime;
         private float lastSeenTime = -999f;
         private Vector3 lastKnownTargetPosition;
+        private Vector3 tacticalDestination;
         private int patrolIndex;
+        private bool hasTacticalDestination;
 
-        // accuracy and damage multiplier are passed to the equipped weapon.
         public event Action<float, float> ShotRequested;
         public BotCombatState State => state;
 
@@ -51,7 +52,7 @@ namespace AdixBattleRoyale.AI
 
         private void Update()
         {
-            if (difficulty == null || agent == null || !agent.isOnNavMesh) return;
+            if (difficulty == null || agent == null || !agent.isOnNavMesh || target == null) return;
 
             bool visible = CanSeeTarget();
             if (visible)
@@ -71,34 +72,48 @@ namespace AdixBattleRoyale.AI
 
         private bool CanSeeTarget()
         {
-            if (target == null) return false;
-
             Vector3 origin = transform.position + Vector3.up * 1.5f;
             Vector3 destination = target.position + Vector3.up;
             Vector3 direction = destination - origin;
             float distance = direction.magnitude;
-
             if (distance > difficulty.detectionRange) return false;
-            if (Physics.Raycast(origin, direction.normalized, out RaycastHit hit,
-                    distance, lineOfSightMask, QueryTriggerInteraction.Ignore))
-                return hit.transform == target || hit.transform.IsChildOf(target);
 
+            // Ignore this bot's own colliders by checking all hits in distance order.
+            RaycastHit[] hits = Physics.RaycastAll(origin, direction.normalized, distance,
+                lineOfSightMask, QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.transform == transform || hit.transform.IsChildOf(transform)) continue;
+                return hit.transform == target || hit.transform.IsChildOf(target);
+            }
             return true;
         }
 
         private void Decide(bool visible)
         {
-            if (visible)
+            hasTacticalDestination = false;
+            if (!visible)
             {
-                float distance = Vector3.Distance(transform.position, target.position);
-                state = distance <= difficulty.preferredCombatRange
-                    ? BotCombatState.Engage : BotCombatState.Chase;
+                state = Time.time - lastSeenTime <= lostTargetMemory
+                    ? BotCombatState.Search
+                    : (patrolPoints != null && patrolPoints.Length > 0
+                        ? BotCombatState.Search : BotCombatState.Idle);
+                return;
             }
-            else if (Time.time - lastSeenTime <= lostTargetMemory)
-                state = BotCombatState.Search;
-            else
-                state = patrolPoints != null && patrolPoints.Length > 0
-                    ? BotCombatState.Search : BotCombatState.Idle;
+
+            float distance = Vector3.Distance(transform.position, target.position);
+            state = distance <= difficulty.preferredCombatRange
+                ? BotCombatState.Engage : BotCombatState.Chase;
+
+            if (state == BotCombatState.Engage)
+            {
+                float roll = UnityEngine.Random.value;
+                if (roll < difficulty.coverUsage)
+                    hasTacticalDestination = TryFindCover(out tacticalDestination);
+                else if (roll < difficulty.coverUsage + difficulty.flankChance)
+                    hasTacticalDestination = TryFindFlank(out tacticalDestination);
+            }
         }
 
         private void RunState(bool visible)
@@ -106,13 +121,22 @@ namespace AdixBattleRoyale.AI
             switch (state)
             {
                 case BotCombatState.Chase:
-                    if (target != null) agent.SetDestination(target.position);
+                    agent.isStopped = false;
+                    agent.SetDestination(target.position);
                     break;
 
                 case BotCombatState.Engage:
-                    if (target == null) break;
-                    agent.SetDestination(transform.position);
                     FaceTarget(target.position);
+                    if (hasTacticalDestination)
+                    {
+                        agent.isStopped = false;
+                        agent.SetDestination(tacticalDestination);
+                    }
+                    else
+                    {
+                        agent.isStopped = true;
+                    }
+
                     if (visible && Time.time >= nextShotTime)
                     {
                         nextShotTime = Time.time + Mathf.Max(0.25f, difficulty.reactionTime);
@@ -121,17 +145,55 @@ namespace AdixBattleRoyale.AI
                     break;
 
                 case BotCombatState.Search:
+                    agent.isStopped = false;
                     if (Time.time - lastSeenTime <= lostTargetMemory)
                         agent.SetDestination(lastKnownTargetPosition);
                     else if (patrolPoints != null && patrolPoints.Length > 0)
                     {
                         Transform point = patrolPoints[patrolIndex % patrolPoints.Length];
                         if (point != null && (!agent.hasPath || agent.remainingDistance < 1.5f))
-                            patrolIndex++;
+                            patrolIndex = (patrolIndex + 1) % patrolPoints.Length;
                         if (point != null) agent.SetDestination(point.position);
                     }
                     break;
+
+                default:
+                    agent.isStopped = true;
+                    break;
             }
+        }
+
+        private bool TryFindFlank(out Vector3 destination)
+        {
+            Vector3 toTarget = (target.position - transform.position).normalized;
+            Vector3 side = Vector3.Cross(Vector3.up, toTarget) *
+                           (UnityEngine.Random.value < 0.5f ? -1f : 1f);
+            Vector3 candidate = target.position + side * flankDistance -
+                                toTarget * (flankDistance * 0.35f);
+            return NavMesh.SamplePosition(candidate, out NavMeshHit hit,
+                flankDistance, NavMesh.AllAreas) && (destination = hit.position) == hit.position;
+        }
+
+        private bool TryFindCover(out Vector3 destination)
+        {
+            Vector3 away = (transform.position - target.position).normalized;
+            for (int i = 0; i < 8; i++)
+            {
+                Vector2 random = UnityEngine.Random.insideUnitCircle * coverSearchRadius;
+                Vector3 candidate = transform.position + new Vector3(random.x, 0f, random.y) + away * 3f;
+                if (!NavMesh.SamplePosition(candidate, out NavMeshHit navHit, 3f, NavMesh.AllAreas))
+                    continue;
+
+                Vector3 eye = navHit.position + Vector3.up * 1.3f;
+                Vector3 targetEye = target.position + Vector3.up;
+                if (Physics.Linecast(eye, targetEye, lineOfSightMask, QueryTriggerInteraction.Ignore))
+                {
+                    destination = navHit.position;
+                    return true;
+                }
+            }
+            destination = default;
+            return false;
         }
 
         private void FaceTarget(Vector3 position)
