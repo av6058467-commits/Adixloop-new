@@ -13,9 +13,8 @@ Build a distinctive, premium-feeling offline mobile battle royale. The ambition 
 7. **Performance modes** — Low, Balanced and High graphics presets; dynamic resolution and effects scaling; target stable frame pacing on Android before increasing visual effects.
 
 ## Content size and visual-quality target
-- **Minimum target installed game size: 250–300 MB.**
-- **Preferred premium content target: 500 MB–1 GB**, only when the added size is justified by real game content and quality.
-- Use high-quality original island/city environments, character and vehicle models, weapon models, textures, animations, effects, voice/audio and music.
+- **Target installed game size: 500 MB–1 GB.**
+- Build toward this range with genuine premium content: detailed original island/city environments, character and vehicle models, weapon models, high-quality textures, animations, effects, voice/audio and music.
 - Keep the core match fully offline: required maps, gameplay assets and audio must be included locally, not dependent on downloading content during play.
 - Use sensible texture/audio compression and asset reuse; do not add empty or duplicated files just to inflate size.
 - Report both APK/AAB download size and installed size separately because compression and Android packaging make them different.
