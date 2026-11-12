@@ -137,7 +137,6 @@ namespace AdixBattleRoyale.Editor
             root.name = "DemoBot";
             root.transform.position = new Vector3(0f, -100f, 0f);
             root.GetComponent<Renderer>().sharedMaterial = MakeMaterial("Bot Armor", new Color(0.62f, 0.18f, 0.16f));
-            Object.DestroyImmediate(root.GetComponent<Collider>());
             root.AddComponent<NavMeshAgent>();
             root.AddComponent<BotHealth>();
             root.AddComponent<BattleBotBrain>();
