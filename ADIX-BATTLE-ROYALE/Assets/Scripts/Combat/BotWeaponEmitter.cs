@@ -1,8 +1,9 @@
+using System;
 using UnityEngine;
 
 namespace AdixBattleRoyale.Combat
 {
-    /// <summary>Subscribe this component to BattleBotBrain.ShotRequested.</summary>
+    /// <summary>Receives BattleBotBrain.ShotRequested and resolves hits on the player.</summary>
     public sealed class BotWeaponEmitter : MonoBehaviour
     {
         [SerializeField] private Transform muzzle;
@@ -16,19 +17,31 @@ namespace AdixBattleRoyale.Combat
         public void Fire(float accuracy, float damageMultiplier)
         {
             if (target == null || muzzle == null) return;
+
             Vector3 aimPoint = target.position + Vector3.up;
             Vector3 ideal = (aimPoint - muzzle.position).normalized;
             float spread = Mathf.Lerp(12f, 0.4f, Mathf.Clamp01(accuracy));
             Vector3 direction = Quaternion.Euler(
-                Random.Range(-spread, spread),
-                Random.Range(-spread, spread), 0f) * ideal;
+                UnityEngine.Random.Range(-spread, spread),
+                UnityEngine.Random.Range(-spread, spread), 0f) * ideal;
 
-            if (!Physics.Raycast(muzzle.position, direction, out RaycastHit hit,
-                    range, hitMask, QueryTriggerInteraction.Ignore)) return;
+            // RaycastAll lets us ignore the bot's own colliders instead of
+            // accidentally registering its weapon/body as the first hit.
+            RaycastHit[] hits = Physics.RaycastAll(
+                muzzle.position, direction, range, hitMask,
+                QueryTriggerInteraction.Ignore);
+            Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
 
-            PlayerHealth health = hit.collider.GetComponentInParent<PlayerHealth>();
-            if (health != null)
-                health.TakeDamage(baseDamage * Mathf.Max(0.1f, damageMultiplier));
+            foreach (RaycastHit hit in hits)
+            {
+                if (hit.transform == transform || hit.transform.IsChildOf(transform))
+                    continue;
+
+                PlayerHealth health = hit.collider.GetComponentInParent<PlayerHealth>();
+                if (health != null)
+                    health.TakeDamage(baseDamage * Mathf.Max(0.1f, damageMultiplier));
+                break; // First non-self obstruction blocks the shot.
+            }
         }
     }
 }
