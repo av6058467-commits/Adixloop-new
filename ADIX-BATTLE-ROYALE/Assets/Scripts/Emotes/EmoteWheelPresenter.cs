@@ -28,7 +28,6 @@ namespace AdixBattleRoyale.Emotes
                 slots[i].onClick.AddListener(slotActions[i]);
             }
 
-            if (wheelRoot != null) wheelRoot.SetActive(false);
         }
 
         public void Show()
