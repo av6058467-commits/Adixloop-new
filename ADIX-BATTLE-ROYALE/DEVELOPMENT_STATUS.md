@@ -64,3 +64,15 @@ The checked items above are source-code foundations only. Unity Editor compilati
 - [ ] Build draggable HUD editor and save multiple layouts
 - [ ] Device capability detection and Android performance/thermal profiling
 - [ ] Unity compile and device testing
+
+
+### Google / Gmail account login foundation
+- [x] Added a compile-safe Google/Firebase Auth bridge and setup guide
+- [ ] Create Firebase project and register the exact Android package ID
+- [ ] Enable Google provider and add debug/release SHA fingerprints
+- [ ] Import Firebase Auth + Google Sign-In Unity SDKs and set Web OAuth client ID
+- [ ] Add login UI scene/button and connect success/error events
+- [ ] Test sign-in, sign-out and session restore on Android
+- [ ] Configure secure cloud-save rules if cross-device progress sync is required
+
+**Verification:** Google sign-in is not live yet. The owner must complete Firebase/OAuth configuration and import the SDKs; no Gmail password is collected by the game.
