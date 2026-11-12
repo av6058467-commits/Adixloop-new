@@ -1,4 +1,5 @@
 using UnityEngine;
+using AdixBattleRoyale.Audio;
 
 namespace AdixBattleRoyale.World
 {
@@ -14,6 +15,7 @@ namespace AdixBattleRoyale.World
         [SerializeField] private float maxSpeedKph = 115f;
         [SerializeField] private Transform centerOfMass;
         private Rigidbody body;
+        private VehicleEngineAudio vehicleAudio;
         private float throttle;
         private float steering;
         private bool braking;
@@ -22,16 +24,22 @@ namespace AdixBattleRoyale.World
         private void Awake()
         {
             body = GetComponent<Rigidbody>();
+            vehicleAudio = GetComponent<VehicleEngineAudio>();
             if (centerOfMass != null) body.centerOfMass = transform.InverseTransformPoint(centerOfMass.position);
             body.interpolation = RigidbodyInterpolation.Interpolate;
         }
 
-        public void SetDriver(bool occupied) => HasDriver = occupied;
+        public void SetDriver(bool occupied)
+        {
+            if (occupied && !HasDriver) vehicleAudio?.PlayStart();
+            HasDriver = occupied;
+        }
         public void SetInput(float throttleInput, float steeringInput, bool brake)
         {
             throttle = HasDriver ? Mathf.Clamp(throttleInput, -1f, 1f) : 0f;
             steering = HasDriver ? Mathf.Clamp(steeringInput, -1f, 1f) : 0f;
             braking = HasDriver && brake;
+            vehicleAudio?.SetBraking(braking);
         }
 
         private void FixedUpdate()
