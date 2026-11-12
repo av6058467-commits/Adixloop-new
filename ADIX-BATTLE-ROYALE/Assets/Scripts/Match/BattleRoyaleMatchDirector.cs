@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 using AdixBattleRoyale.AI;
 using AdixBattleRoyale.Combat;
 
@@ -39,7 +40,10 @@ namespace AdixBattleRoyale.Match
             {
                 Transform spawn = spawnPoints[i % spawnPoints.Length];
                 Vector3 offset = new Vector3(Random.Range(-4f, 4f), 0f, Random.Range(-4f, 4f));
-                GameObject bot = Instantiate(botPrefab, spawn.position + offset, spawn.rotation);
+                Vector3 desiredPosition = spawn.position + offset;
+                if (NavMesh.SamplePosition(desiredPosition, out NavMeshHit navHit, 12f, NavMesh.AllAreas))
+                    desiredPosition = navHit.position;
+                GameObject bot = Instantiate(botPrefab, desiredPosition, spawn.rotation);
 
                 BotHealth health = bot.GetComponent<BotHealth>();
                 if (health != null)
