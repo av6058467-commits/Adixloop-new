@@ -52,3 +52,15 @@ The checked items above are source-code foundations only. Unity Editor compilati
 - [ ] Configure hostile target layers and test bot target filtering
 - [ ] Tune aim speed, range and fire interval for fair offline gameplay on Android
 - [ ] Compile and device-test; not yet Unity-verified
+
+### Settings foundation added
+- [x] Graphics preset foundation: Ultra Smooth, Standard, Ultra
+- [x] Target FPS request setting (30–120; device may cap actual FPS)
+- [x] Camera, Red Dot, 2x, 4x and Sniper sensitivity storage
+- [x] Gyroscope and aim-mode settings storage
+- [x] PlayerPrefs persistence and runtime camera/touch sensitivity application
+- [ ] Build and bind Settings UI tabs and controls
+- [ ] Connect scope sensitivity values to actual ADS camera/weapon logic
+- [ ] Build draggable HUD editor and save multiple layouts
+- [ ] Device capability detection and Android performance/thermal profiling
+- [ ] Unity compile and device testing
