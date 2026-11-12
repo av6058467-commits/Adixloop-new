@@ -12,6 +12,15 @@ Build a distinctive, premium-feeling offline mobile battle royale. The ambition 
 6. **Offline-first** — no server or account required for the core solo mode; local progression and settings.
 7. **Performance modes** — Low, Balanced and High graphics presets; dynamic resolution and effects scaling; target stable frame pacing on Android before increasing visual effects.
 
+## Content size and visual-quality target
+- **Minimum target installed game size: 250–300 MB.**
+- **Preferred premium content target: 500 MB–1 GB**, only when the added size is justified by real game content and quality.
+- Use high-quality original island/city environments, character and vehicle models, weapon models, textures, animations, effects, voice/audio and music.
+- Keep the core match fully offline: required maps, gameplay assets and audio must be included locally, not dependent on downloading content during play.
+- Use sensible texture/audio compression and asset reuse; do not add empty or duplicated files just to inflate size.
+- Report both APK/AAB download size and installed size separately because compression and Android packaging make them different.
+- Preserve Low/Balanced/High graphics options so the premium assets can scale to the target Android phone.
+
 ## First playable milestone
 - One compact test area, not the full island
 - One player character with third-person movement and camera
