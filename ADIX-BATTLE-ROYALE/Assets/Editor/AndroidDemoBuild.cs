@@ -28,6 +28,8 @@ namespace AdixBattleRoyale.Editor
             PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.LandscapeLeft;
 
+            DemoSceneBuilder.CreateDemoScene();
+
             string[] scenes = Array.ConvertAll(
                 EditorBuildSettings.scenes,
                 scene => scene.path);
