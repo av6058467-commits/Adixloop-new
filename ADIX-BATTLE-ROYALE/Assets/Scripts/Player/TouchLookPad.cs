@@ -11,6 +11,8 @@ namespace AdixBattleRoyale.Player
         private Vector2 previousPosition;
         private int activePointer = int.MinValue;
 
+        public void SetSensitivity(float value) => sensitivity = Mathf.Clamp(value, 0.1f, 2f);
+
         public void OnPointerDown(PointerEventData eventData)
         {
             activePointer = eventData.pointerId;
