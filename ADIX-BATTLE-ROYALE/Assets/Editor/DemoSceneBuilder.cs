@@ -170,7 +170,6 @@ namespace AdixBattleRoyale.Editor
                 spawns[i] = point.transform;
             }
             SetObjectArray(director, "spawnPoints", spawns);
-            director.StartOfflineMatch();
         }
 
         private static void CreateHud(GameObject player)
@@ -285,8 +284,9 @@ namespace AdixBattleRoyale.Editor
 
         private static Material MakeMaterial(string name, Color color)
         {
-            Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            if (material.shader == null) material.shader = Shader.Find("Standard");
+            Shader shader = Shader.Find("Universal Render Pipeline/Lit");
+            if (shader == null) shader = Shader.Find("Standard");
+            Material material = new Material(shader);
             material.name = name;
             material.color = color;
             return material;
