@@ -11,7 +11,7 @@ namespace AdixBattleRoyale.Emotes
         [SerializeField] private Transform weaponVisual;
         [SerializeField] private AudioSource emoteAudio;
         [SerializeField] private EmoteGameMode currentMode = EmoteGameMode.BattleRoyale;
-        [SerializeField] private bool inCombat;
+        [SerializeField] private bool inCombat;\n        [SerializeField] private bool healingInProgress;
 
         private Coroutine activeRoutine;
         private EmoteDefinition activeEmote;
@@ -27,13 +27,13 @@ namespace AdixBattleRoyale.Emotes
         }
 
         public void SetGameMode(EmoteGameMode mode) => currentMode = mode;
-        public void SetCombatState(bool value) => inCombat = value;
+        public void SetCombatState(bool value) => inCombat = value;\n        public void SetHealingState(bool value) => healingInProgress = value;
 
         public bool CanPlay(EmoteDefinition emote)
         {
             if (emote == null || animator == null) return false;
             if (!emote.IsAvailableIn(currentMode)) return false;
-            if (inCombat && !emote.AllowInCombat) return false;
+            if (inCombat && !emote.AllowInCombat) return false;\n            if (healingInProgress && !emote.AllowDuringHealing) return false;
             if (emote.RequiresWeapon && (weaponVisual == null || !weaponVisual.gameObject.activeInHierarchy)) return false;
             return !string.IsNullOrWhiteSpace(emote.AnimatorState);
         }
