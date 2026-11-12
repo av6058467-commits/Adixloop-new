@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using AdixBattleRoyale.AI;
+using AdixBattleRoyale.Combat;
 
 namespace AdixBattleRoyale.Match
 {
@@ -34,16 +35,30 @@ namespace AdixBattleRoyale.Match
                 Transform spawn = spawnPoints[i % spawnPoints.Length];
                 Vector3 offset = new Vector3(Random.Range(-4f, 4f), 0f, Random.Range(-4f, 4f));
                 GameObject bot = Instantiate(botPrefab, spawn.position + offset, spawn.rotation);
+
+                BotHealth health = bot.GetComponent<BotHealth>();
+                if (health != null)
+                {
+                    health.SetMatchDirector(this);
+                    if (tier != null) health.ApplyDifficultyHealth(tier.healthMultiplier);
+                }
+
                 BattleBotBrain brain = bot.GetComponent<BattleBotBrain>();
-                if (brain != null) brain.Configure(player, tier);
+                BotWeaponEmitter weapon = bot.GetComponentInChildren<BotWeaponEmitter>();
+                if (weapon != null) weapon.SetTarget(player);
+                if (brain != null)
+                {
+                    brain.Configure(player, tier);
+                    if (weapon != null) brain.ShotRequested += weapon.Fire;
+                }
+
                 aliveBots.Add(bot);
             }
         }
 
         public void NotifyBotEliminated(GameObject bot)
         {
-            if (bot == null) return;
-            aliveBots.Remove(bot);
+            if (bot == null || !aliveBots.Remove(bot)) return;
             Destroy(bot);
             if (MatchStarted && aliveBots.Count == 0)
                 Debug.Log("Winner: Player — all bots eliminated.");
