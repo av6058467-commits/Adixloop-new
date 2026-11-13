@@ -1,0 +1,34 @@
+workflows:
+  adix-battle-royale-android:
+    name: ADIX BATTLE ROYALE Android APK
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+    environment:
+      unity: 2022.3.62f1
+      groups:
+        - unity_credentials
+      vars:
+        UNITY_PROJECT_PATH: ADIX-BATTLE-ROYALE
+    scripts:
+      - name: Activate Unity license
+        script: |
+          "$UNITY_HOME/Contents/MacOS/Unity" -batchmode -quit -logFile - \
+            -serial "$UNITY_SERIAL" \
+            -username "$UNITY_EMAIL" \
+            -password "$UNITY_PASSWORD"
+      - name: Build ADIX Android ARM64 APK
+        script: |
+          "$UNITY_HOME/Contents/MacOS/Unity" -batchmode -quit -nographics -logFile - \
+            -projectPath "$CM_BUILD_DIR/$UNITY_PROJECT_PATH" \
+            -executeMethod AdixBattleRoyale.Editor.AndroidDemoBuild.BuildAndroidDemo
+    artifacts:
+      - ADIX-BATTLE-ROYALE/Builds/Android/*.apk
+      - ADIX-BATTLE-ROYALE/Builds/Android/*.txt
+    publishing:
+      scripts:
+        - name: Return Unity license
+          script: |
+            "$UNITY_HOME/Contents/MacOS/Unity" -batchmode -quit -logFile - \
+              -returnlicense \
+              -username "$UNITY_EMAIL" \
+              -password "$UNITY_PASSWORD"
