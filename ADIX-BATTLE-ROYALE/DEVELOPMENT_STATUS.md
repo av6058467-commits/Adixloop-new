@@ -88,3 +88,13 @@ The checked items above are source-code foundations only. Unity Editor compilati
 - [ ] Compile and test in Unity; not yet verified
 
 **Current limitation:** CS logic is a code foundation only. Offline roster placeholders are not actual network players or fully integrated combat bots.
+
+
+### Phone-first cloud Android build workflow
+- [x] Added GitHub Actions preflight that reports missing Unity repository secrets before starting the Unity build
+- [x] Added build concurrency control and a 90-minute job timeout
+- [x] Added phone-friendly cloud-build instructions in CLOUD_BUILD_FROM_PHONE.md
+- [ ] Owner must add valid UNITY_LICENSE, UNITY_EMAIL and UNITY_PASSWORD repository secrets
+- [ ] Run the cloud workflow, resolve any Unity compiler/build errors, download the APK artifact and test it on Android
+
+**Current status:** Workflow configuration is committed, but no new successful APK build has been confirmed. Local Android SDK/NDK installation can be skipped for this cloud workflow.
