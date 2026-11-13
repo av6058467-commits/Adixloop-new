@@ -76,3 +76,15 @@ The checked items above are source-code foundations only. Unity Editor compilati
 - [ ] Configure secure cloud-save rules if cross-device progress sync is required
 
 **Verification:** Google sign-in is not live yet. The owner must complete Firebase/OAuth configuration and import the SDKs; no Gmail password is collected by the game.
+
+
+### Clash Nexus (CS) 4v4 foundation added
+- [x] Added Team Orion / Team Aether roster model with four slots per side
+- [x] Added offline AI-placeholder fill for unoccupied roster slots
+- [x] Added ready-state validation and Team Setup → Buy Phase → Round Active → Result → Match Complete flow
+- [x] Added per-team credits, weapon-class purchase validation, round rewards and score events
+- [ ] Connect roster and loadout UI, spawn/round combat, objective rules and arena scene
+- [ ] Add real player invites/network matchmaking only if an online mode is approved
+- [ ] Compile and test in Unity; not yet verified
+
+**Current limitation:** CS logic is a code foundation only. Offline roster placeholders are not actual network players or fully integrated combat bots.
