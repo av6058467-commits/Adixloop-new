@@ -3,7 +3,7 @@ config_version=5
 
 [application]
 config/name="ADIX BATTLE ROYALE"
-run/main_scene="res://scenes/Main.tscn"
+run/main_scene="res://scenes/Lobby.tscn"
 
 [display]
 window/size/viewport_width=1280
