@@ -5,13 +5,16 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 ## Authored prototype systems
 - Runtime-generated test arena, cover and simple trees
 - Third-person player capsule and camera
-- Desktop movement and basic touch movement control
+- Desktop movement, mouse look and touch movement/look controls
 - Eight rival bots with simple chase/attack behavior
 - Hitscan shooting, bot health and elimination counter
 - Shrinking safe-zone ring and damage outside the radius
 - Health pickups
 - Sidearm and ADIX-R1 test weapon
+- Two weapon slots and weapon switching (Q / TAB or SWAP button)
 - Magazine ammo, reserve ammo, reload timer and ammo pickups
+- Victory / Defeat result panel with retry and exit controls
+- Mobile HUD buttons for FIRE, RELOAD, SWAP and JUMP
 
 ## Open
 1. Install Godot 4.x from https://godotengine.org/download/
@@ -19,7 +22,7 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 3. Open and run scenes/Main.tscn.
 
 ## Important
-This code has not yet been opened, compiled or device-tested in Godot in this environment. Final weapon models/animations, polished mobile camera controls, proper map, match flow, sound, menus, Android export setup and APK export are still outstanding.
+This code has not yet been opened, compiled or device-tested in Godot in this environment. The mobile controls are a first implementation and require real-device tuning. Final weapon models/animations, polished map, sound, menus, Android export setup and APK export are still outstanding.
 
 ## Next
-Verify and fix in Godot editor, improve mobile controls, add weapon switching and match result flow, then build and test on Android.
+Run the project in Godot 4 editor, fix any parser/runtime errors, tune controls on Android, then prepare and test an APK.
