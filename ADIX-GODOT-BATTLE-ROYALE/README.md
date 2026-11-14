@@ -18,7 +18,9 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 - Magazine ammo, reserve ammo, reload timer and ammo pickups
 - Victory / Defeat result panel with retry and exit controls
 - Mobile HUD buttons with original icon labels for FIRE, RELOAD, SWAP, JUMP and camera ZOOM
-- NEW HUD Customize panel with edit mode for dragging combat buttons
+- Reference-inspired mobile HUD: minimap/team strip, compass, live/kill indicators, ammo card, three gun slots plus fist, movement stick, health bar and combat controls
+- HUD customization: select and drag controls, resize and adjust opacity, save layout to device storage, and reset layout
+- Some visual controls (throwable, crouch/prone, team/minimap indicators) are currently presentation placeholders; their gameplay systems are not implemented
 - Top compass heading indicator with cardinal directions and degree readout
 
 ## Open
