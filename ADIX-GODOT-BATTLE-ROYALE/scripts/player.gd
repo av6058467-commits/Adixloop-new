@@ -15,9 +15,16 @@ var fire_interval := 0.28
 var is_reloading := false
 var camera_pivot: Node3D
 var camera: Camera3D
+var weapon_slots: Array[Dictionary] = []
+var active_slot := 0
 
 func setup(owner_game) -> void:
 	game = owner_game
+	weapon_slots = [
+		{"name": "SIDEARM", "mag": 12, "ammo": 12, "reserve": 48, "damage": 20.0, "interval": 0.28},
+		{"name": "", "mag": 0, "ammo": 0, "reserve": 0, "damage": 0.0, "interval": 0.3}
+	]
+	_apply_active_weapon()
 	var collider := CollisionShape3D.new()
 	var capsule := CapsuleShape3D.new()
 	capsule.radius = 0.48
@@ -45,13 +52,19 @@ func setup(owner_game) -> void:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		rotate_y(-event.relative.x * 0.003)
-		camera_pivot.rotate_x(-event.relative.y * 0.003)
-		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x, -0.8, 0.5)
-	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
-		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
-	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
-		reload_weapon()
+		look_by(event.relative)
+	if event is InputEventKey and event.pressed:
+		if event.keycode == KEY_ESCAPE:
+			Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+		elif event.keycode == KEY_R:
+			reload_weapon()
+		elif event.keycode == KEY_Q or event.keycode == KEY_TAB:
+			switch_weapon()
+
+func look_by(relative_motion: Vector2) -> void:
+	rotate_y(-relative_motion.x * 0.003)
+	camera_pivot.rotate_x(-relative_motion.y * 0.003)
+	camera_pivot.rotation.x = clampf(camera_pivot.rotation.x, -0.8, 0.5)
 
 func _physics_process(delta: float) -> void:
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
@@ -63,6 +76,7 @@ func _physics_process(delta: float) -> void:
 			ammo_in_magazine += loaded
 			reserve_ammo -= loaded
 			is_reloading = false
+			_save_active_weapon()
 	var input_vec := Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): input_vec.x -= 1.0
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): input_vec.x += 1.0
@@ -88,17 +102,46 @@ func take_damage(amount: float) -> void:
 func heal(amount: float) -> void:
 	health = minf(100.0, health + amount)
 
-func equip_weapon(new_name: String, mag_size: int, reserve: int) -> void:
-	weapon_name = new_name
-	magazine_size = mag_size
-	ammo_in_magazine = mag_size
-	reserve_ammo = reserve
-	weapon_damage = 26.0
-	fire_interval = 0.16
+func _save_active_weapon() -> void:
+	if weapon_slots.size() <= active_slot:
+		return
+	weapon_slots[active_slot] = {"name": weapon_name, "mag": magazine_size, "ammo": ammo_in_magazine, "reserve": reserve_ammo, "damage": weapon_damage, "interval": fire_interval}
+
+func _apply_active_weapon() -> void:
+	var data: Dictionary = weapon_slots[active_slot]
+	weapon_name = str(data.get("name", "SIDEARM"))
+	magazine_size = int(data.get("mag", 12))
+	ammo_in_magazine = int(data.get("ammo", magazine_size))
+	reserve_ammo = int(data.get("reserve", 0))
+	weapon_damage = float(data.get("damage", 20.0))
+	fire_interval = float(data.get("interval", 0.28))
 	is_reloading = false
+
+func equip_weapon(new_name: String, mag_size: int, reserve: int) -> void:
+	_save_active_weapon()
+	var new_data := {"name": new_name, "mag": mag_size, "ammo": mag_size, "reserve": reserve, "damage": 26.0, "interval": 0.16}
+	var found_slot := -1
+	for i in range(weapon_slots.size()):
+		if str(weapon_slots[i].get("name", "")) == new_name:
+			found_slot = i
+			break
+	if found_slot == -1:
+		found_slot = 1 - active_slot
+	weapon_slots[found_slot] = new_data
+	active_slot = found_slot
+	_apply_active_weapon()
+
+func switch_weapon() -> void:
+	_save_active_weapon()
+	var other_slot := 1 - active_slot
+	if str(weapon_slots[other_slot].get("name", "")) == "":
+		return
+	active_slot = other_slot
+	_apply_active_weapon()
 
 func add_ammo(amount: int) -> void:
 	reserve_ammo += amount
+	_save_active_weapon()
 
 func reload_weapon() -> void:
 	if is_reloading or ammo_in_magazine >= magazine_size or reserve_ammo <= 0:
@@ -114,6 +157,7 @@ func try_fire() -> void:
 		return
 	fire_cooldown = fire_interval
 	ammo_in_magazine -= 1
+	_save_active_weapon()
 	var origin := camera.global_position
 	var direction := -camera.global_transform.basis.z
 	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * 90.0)
