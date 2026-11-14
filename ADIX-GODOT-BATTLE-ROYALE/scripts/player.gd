@@ -24,8 +24,10 @@ var zoom_fov := 42.0
 func setup(owner_game) -> void:
 	game = owner_game
 	weapon_slots = [
-		{"name": "SIDEARM", "mag": 12, "ammo": 12, "reserve": 48, "damage": 20.0, "interval": 0.28},
-		{"name": "", "mag": 0, "ammo": 0, "reserve": 0, "damage": 0.0, "interval": 0.3}
+		{"name": "SIDEARM", "mag": 12, "ammo": 12, "reserve": 48, "damage": 20.0, "interval": 0.28, "kind": "gun"},
+		{"name": "", "mag": 0, "ammo": 0, "reserve": 0, "damage": 0.0, "interval": 0.3, "kind": "gun"},
+		{"name": "", "mag": 0, "ammo": 0, "reserve": 0, "damage": 0.0, "interval": 0.3, "kind": "gun"},
+		{"name": "FISTS", "mag": 0, "ammo": 0, "reserve": 0, "damage": 18.0, "interval": 0.55, "kind": "melee"}
 	]
 	_apply_active_weapon()
 	var collider := CollisionShape3D.new()
@@ -128,14 +130,19 @@ func _apply_active_weapon() -> void:
 
 func equip_weapon(new_name: String, mag_size: int, reserve: int) -> void:
 	_save_active_weapon()
-	var new_data := {"name": new_name, "mag": mag_size, "ammo": mag_size, "reserve": reserve, "damage": 26.0, "interval": 0.16}
+	var new_data := {"name": new_name, "mag": mag_size, "ammo": mag_size, "reserve": reserve, "damage": 26.0, "interval": 0.16, "kind": "gun"}
 	var found_slot := -1
-	for i in range(weapon_slots.size()):
+	for i in range(3):
 		if str(weapon_slots[i].get("name", "")) == new_name:
 			found_slot = i
 			break
 	if found_slot == -1:
-		found_slot = 1 - active_slot
+		for i in range(3):
+			if str(weapon_slots[i].get("name", "")) == "":
+				found_slot = i
+				break
+	if found_slot == -1:
+		found_slot = active_slot if active_slot < 3 else 0
 	weapon_slots[found_slot] = new_data
 	active_slot = found_slot
 	_apply_active_weapon()
@@ -151,24 +158,35 @@ func select_weapon_slot(slot: int) -> void:
 
 func switch_weapon() -> void:
 	_save_active_weapon()
-	var other_slot := 1 - active_slot
-	if str(weapon_slots[other_slot].get("name", "")) == "":
-		return
-	active_slot = other_slot
-	_apply_active_weapon()
+	for step in range(1, weapon_slots.size() + 1):
+		var candidate := (active_slot + step) % weapon_slots.size()
+		if str(weapon_slots[candidate].get("name", "")) != "":
+			active_slot = candidate
+			_apply_active_weapon()
+			return
 
 func add_ammo(amount: int) -> void:
 	reserve_ammo += amount
 	_save_active_weapon()
 
 func reload_weapon() -> void:
-	if is_reloading or ammo_in_magazine >= magazine_size or reserve_ammo <= 0:
+	if str(weapon_slots[active_slot].get("kind", "gun")) == "melee" or is_reloading or ammo_in_magazine >= magazine_size or reserve_ammo <= 0:
 		return
 	is_reloading = true
 	reload_timer = 1.5
 
 func try_fire() -> void:
 	if is_reloading or fire_cooldown > 0.0 or not is_instance_valid(camera):
+		return
+	if str(weapon_slots[active_slot].get("kind", "gun")) == "melee":
+		fire_cooldown = fire_interval
+		var melee_origin := camera.global_position
+		var melee_direction := -camera.global_transform.basis.z
+		var melee_query := PhysicsRayQueryParameters3D.create(melee_origin, melee_origin + melee_direction * 2.6)
+		melee_query.exclude = [get_rid()]
+		var melee_hit := get_world_3d().direct_space_state.intersect_ray(melee_query)
+		if melee_hit and melee_hit.collider and melee_hit.collider.has_method("take_damage"):
+			melee_hit.collider.take_damage(weapon_damage)
 		return
 	if ammo_in_magazine <= 0:
 		reload_weapon()
