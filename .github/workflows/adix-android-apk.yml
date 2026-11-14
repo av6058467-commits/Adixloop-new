@@ -1,18 +1,25 @@
-name: Build ADIX Android APK
+name: Build ADIX Godot Android APK
 
 on:
   push:
     paths:
       - "ADIX-GODOT-BATTLE-ROYALE/**"
       - ".github/workflows/adix-android-apk.yml"
+      - ".github/workflows/adix-battle-royale-android.yml"
   workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: adix-godot-android-build
+  cancel-in-progress: true
+
 jobs:
   export-android:
+    name: Export Godot Android APK
     runs-on: ubuntu-24.04
+    timeout-minutes: 60
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,9 +30,10 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Use preinstalled Android SDK
+      - name: Configure Android SDK
         shell: bash
         run: |
+          set -euxo pipefail
           echo "ANDROID_HOME=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=/usr/local/lib/android/sdk" >> "$GITHUB_ENV"
           echo "/usr/local/lib/android/sdk/platform-tools" >> "$GITHUB_PATH"
@@ -38,7 +46,7 @@ jobs:
           yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
           sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Install Godot and Android export templates
+      - name: Install Godot 4.4.1 and Android export templates
         shell: bash
         run: |
           set -euxo pipefail
@@ -50,7 +58,7 @@ jobs:
           wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -O "$RUNNER_TEMP/godot/templates.tpz"
           unzip -q -j "$RUNNER_TEMP/godot/templates.tpz" -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
 
-      - name: Validate GDScript project
+      - name: Validate Godot project
         shell: bash
         run: |
           set -euxo pipefail
@@ -62,8 +70,9 @@ jobs:
           set -euxo pipefail
           mkdir -p ADIX-GODOT-BATTLE-ROYALE/build
           "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --export-debug Android ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
+          test -s ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
 
-      - name: Upload APK
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ADIX-BATTLE-ROYALE-Android-APK
