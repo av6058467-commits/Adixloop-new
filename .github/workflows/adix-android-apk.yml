@@ -42,8 +42,11 @@ jobs:
       - name: Install Android SDK packages
         shell: bash
         run: |
-          set -euxo pipefail
+          set -eux
+          # sdkmanager exits successfully after accepting licenses; the yes
+          # process may receive SIGPIPE when sdkmanager closes stdin early.
           yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
+          set -o pipefail
           sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
 
       - name: Install Godot 4.4.1 and Android export templates
