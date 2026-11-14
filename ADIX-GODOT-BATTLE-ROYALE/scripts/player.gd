@@ -67,6 +67,9 @@ func jump() -> void:
 func take_damage(amount: float) -> void:
 	health = maxf(0.0, health - amount)
 
+func heal(amount: float) -> void:
+	health = minf(100.0, health + amount)
+
 func try_fire() -> void:
 	if fire_cooldown > 0.0 or not is_instance_valid(camera):
 		return
