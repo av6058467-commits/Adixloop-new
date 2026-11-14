@@ -1,0 +1,36 @@
+name: Build ADIX Android APK
+
+on:
+  push:
+    paths:
+      - "ADIX-GODOT-BATTLE-ROYALE/**"
+      - ".github/workflows/adix-android-apk.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export-android:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Export Android APK with Godot
+        uses: firebelley/godot-export@v6
+        with:
+          godot_version: "4.4.1"
+          export_debug: true
+          project_directory: "ADIX-GODOT-BATTLE-ROYALE"
+          archive_output: false
+          output_directory: "build"
+          presets_to_export: "Android"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: ADIX-BATTLE-ROYALE-Android-APK
+          path: "ADIX-GODOT-BATTLE-ROYALE/build/*.apk"
+          if-no-files-found: error
+          retention-days: 14
