@@ -17,20 +17,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Export Android APK with Godot
-        uses: firebelley/godot-export@v6
-        with:
-          godot_version: "4.4.1"
-          export_debug: true
-          project_directory: "ADIX-GODOT-BATTLE-ROYALE"
-          archive_output: false
-          output_directory: "build"
-          presets_to_export: "Android"
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Upload APK
+      - name: Export Android APK with Godot
+        id: export
+        uses: firebelley/godot-export@v8.0.0
+        with:
+          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
+          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
+          relative_project_path: ADIX-GODOT-BATTLE-ROYALE
+          export_debug: true
+          presets_to_export: Android
+          use_preset_export_path: true
+          cache: true
+
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: ADIX-BATTLE-ROYALE-Android-APK
-          path: "ADIX-GODOT-BATTLE-ROYALE/build/*.apk"
+          path: ${{ steps.export.outputs.build_directory }}/Android/*.apk
           if-no-files-found: error
           retention-days: 14
