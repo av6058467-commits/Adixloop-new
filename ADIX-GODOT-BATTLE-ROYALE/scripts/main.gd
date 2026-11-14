@@ -4,6 +4,7 @@ const PLAYER_SCRIPT = preload("res://scripts/player.gd")
 const BOT_SCRIPT = preload("res://scripts/bot.gd")
 const SAFE_ZONE_SCRIPT = preload("res://scripts/safe_zone.gd")
 const LOOT_SCRIPT = preload("res://scripts/loot_pickup.gd")
+const WEAPON_PICKUP_SCRIPT = preload("res://scripts/weapon_pickup.gd")
 var player
 var bots: Array = []
 var status_label: Label
@@ -18,6 +19,7 @@ func _ready() -> void:
 	_spawn_player()
 	_spawn_bots(8)
 	_spawn_loot(6)
+	_spawn_weapon_pickups()
 	_spawn_safe_zone()
 	_setup_hud()
 
@@ -28,7 +30,8 @@ func _process(delta: float) -> void:
 		for bot in bots:
 			if is_instance_valid(bot) and bot.current_health > 0:
 				alive += 1
-		status_label.text = "ADIX BATTLE ROYALE | RIVALS: %d | ELIMS: %d | HP: %d | %02d:%02d" % [alive, kills, int(player.health), int(match_time) / 60, int(match_time) % 60]
+		var reload_text := " | RELOADING" if player.is_reloading else ""
+		status_label.text = "ADIX BR | RIVALS: %d | ELIMS: %d | HP: %d | %s %d/%d +%d%s | %02d:%02d" % [alive, kills, int(player.health), player.weapon_name, player.ammo_in_magazine, player.magazine_size, player.reserve_ammo, reload_text, int(match_time) / 60, int(match_time) % 60]
 	if fire_held and is_instance_valid(player):
 		player.try_fire()
 
@@ -54,9 +57,7 @@ func _setup_world() -> void:
 			continue
 		_make_box("Cover", Vector3(x, 0.8, z), Vector3(randf_range(2.0, 4.5), 1.6, randf_range(2.0, 4.5)), Color(0.28, 0.32, 0.31), true)
 	for i in range(14):
-		var x := randf_range(-45, 45)
-		var z := randf_range(-45, 45)
-		_make_tree(Vector3(x, 0, z))
+		_make_tree(Vector3(randf_range(-45, 45), 0, randf_range(-45, 45)))
 
 func _make_box(label: String, pos: Vector3, size: Vector3, color: Color, collision: bool) -> void:
 	var body: Node3D = StaticBody3D.new() if collision else Node3D.new()
@@ -117,6 +118,20 @@ func _spawn_loot(count: int) -> void:
 		pickup.position = Vector3(randf_range(-35, 35), 0.7, randf_range(-35, 35))
 		add_child(pickup)
 
+func _spawn_weapon_pickups() -> void:
+	var rifle := Area3D.new()
+	rifle.set_script(WEAPON_PICKUP_SCRIPT)
+	rifle.pickup_kind = "weapon"
+	rifle.weapon_name = "ADIX-R1"
+	rifle.position = Vector3(5, 0.8, -5)
+	add_child(rifle)
+	for i in range(4):
+		var ammo := Area3D.new()
+		ammo.set_script(WEAPON_PICKUP_SCRIPT)
+		ammo.pickup_kind = "ammo"
+		ammo.position = Vector3(randf_range(-30, 30), 0.8, randf_range(-30, 30))
+		add_child(ammo)
+
 func _spawn_safe_zone() -> void:
 	safe_zone = Node3D.new()
 	safe_zone.set_script(SAFE_ZONE_SCRIPT)
@@ -138,7 +153,7 @@ func _setup_hud() -> void:
 	status_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(status_label)
 	var hint := Label.new()
-	hint.text = "WASD / ARROWS: MOVE | MOUSE: LOOK | FIRE: SHOOT | SPACE: JUMP"
+	hint.text = "WASD / ARROWS: MOVE | MOUSE: LOOK | FIRE: SHOOT | R: RELOAD | SPACE: JUMP"
 	hint.position = Vector2(24, 52)
 	hint.add_theme_color_override("font_color", Color(0.82, 0.88, 0.91))
 	root.add_child(hint)
@@ -162,6 +177,13 @@ func _setup_hud() -> void:
 	fire.button_down.connect(func(): fire_held = true)
 	fire.button_up.connect(func(): fire_held = false)
 	root.add_child(fire)
+	var reload_button := Button.new()
+	reload_button.text = "RELOAD"
+	reload_button.position = Vector2(-290, -145)
+	reload_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	reload_button.size = Vector2(115, 62)
+	reload_button.pressed.connect(func(): player.reload_weapon())
+	root.add_child(reload_button)
 	var jump_button := Button.new()
 	jump_button.text = "JUMP"
 	jump_button.position = Vector2(-145, -270)
