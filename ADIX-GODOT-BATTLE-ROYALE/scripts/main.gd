@@ -17,6 +17,11 @@ var match_finished := false
 var result_panel: PanelContainer
 var look_touch_index := -1
 var last_look_position := Vector2.ZERO
+var compass_label: Label
+var customize_panel: PanelContainer
+var hud_edit_mode := false
+var dragging_hud_button: Control
+var drag_offset := Vector2.ZERO
 
 func _ready() -> void:
 	_setup_world()
@@ -35,6 +40,10 @@ func _process(delta: float) -> void:
 	for bot in bots:
 		if is_instance_valid(bot) and bot.current_health > 0:
 			alive += 1
+	if is_instance_valid(compass_label) and is_instance_valid(player):
+		var heading := fposmod(rad_to_deg(player.rotation.y), 360.0)
+		var directions := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
+		compass_label.text = "%s  |  %03d°" % [directions[int(round(heading / 45.0)) % 8], int(heading)]
 	if is_instance_valid(status_label):
 		var reload_text := " | RELOADING" if player.is_reloading else ""
 		status_label.text = "ADIX BR | RIVALS: %d | ELIMS: %d | HP: %d | %s %d/%d +%d%s | %02d:%02d" % [alive, kills, int(player.health), player.weapon_name, player.ammo_in_magazine, player.magazine_size, player.reserve_ammo, reload_text, int(match_time) / 60, int(match_time) % 60]
@@ -209,13 +218,24 @@ func _setup_hud() -> void:
 	layer.add_child(root)
 	status_label = Label.new()
 	status_label.position = Vector2(18, 14)
-	status_label.add_theme_font_size_override("font_size", 18)
+	status_label.add_theme_font_size_override("font_size", 17)
 	status_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(status_label)
+	compass_label = Label.new()
+	compass_label.anchor_left = 0.5
+	compass_label.anchor_right = 0.5
+	compass_label.offset_left = -110
+	compass_label.offset_right = 110
+	compass_label.offset_top = 14
+	compass_label.offset_bottom = 46
+	compass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	compass_label.add_theme_font_size_override("font_size", 21)
+	compass_label.add_theme_color_override("font_color", Color(0.95, 0.91, 0.72))
+	root.add_child(compass_label)
 	var hint := Label.new()
 	hint.text = "MOVE: LEFT STICK | LOOK: DRAG RIGHT | Q: SWITCH | R: RELOAD"
 	hint.position = Vector2(18, 44)
-	hint.add_theme_font_size_override("font_size", 14)
+	hint.add_theme_font_size_override("font_size", 13)
 	hint.add_theme_color_override("font_color", Color(0.82, 0.88, 0.91))
 	root.add_child(hint)
 	var joystick := Control.new()
@@ -235,12 +255,20 @@ func _setup_hud() -> void:
 	knob.size = Vector2(49, 49)
 	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick.add_child(knob)
-	var fire := _make_hud_button(root, "FIRE", Vector2(-112, -128), Vector2(96, 88))
+	var fire := _make_hud_button(root, "✦ FIRE", Vector2(-112, -128), Vector2(96, 88))
 	fire.button_down.connect(func(): fire_held = true)
 	fire.button_up.connect(func(): fire_held = false)
-	_make_hud_button(root, "RELOAD", Vector2(-230, -112), Vector2(100, 54)).pressed.connect(func(): player.reload_weapon())
-	_make_hud_button(root, "SWAP", Vector2(-230, -178), Vector2(100, 54)).pressed.connect(func(): player.switch_weapon())
-	_make_hud_button(root, "JUMP", Vector2(-112, -232), Vector2(96, 58)).pressed.connect(func(): player.jump())
+	_make_hud_button(root, "↻ RELOAD", Vector2(-230, -112), Vector2(100, 54)).pressed.connect(func(): player.reload_weapon())
+	_make_hud_button(root, "⇄ SWAP", Vector2(-230, -178), Vector2(100, 54)).pressed.connect(func(): player.switch_weapon())
+	_make_hud_button(root, "↑ JUMP", Vector2(-112, -232), Vector2(96, 58)).pressed.connect(func(): player.jump())
+	_make_hud_button(root, "⊕ ZOOM", Vector2(-350, -112), Vector2(100, 54)).pressed.connect(func(): player.toggle_zoom())
+	var customize := Button.new()
+	customize.text = "⚙ HUD NEW"
+	customize.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	customize.position = Vector2(18, -72)
+	customize.size = Vector2(126, 48)
+	customize.pressed.connect(_toggle_customize_panel)
+	root.add_child(customize)
 	var look_area := Control.new()
 	look_area.anchor_left = 0.48
 	look_area.anchor_top = 0.13
@@ -249,6 +277,7 @@ func _setup_hud() -> void:
 	look_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	look_area.gui_input.connect(_on_look_input)
 	root.add_child(look_area)
+	_create_customize_panel(root)
 
 func _make_hud_button(parent: Control, text_value: String, offset: Vector2, button_size: Vector2) -> Button:
 	var button := Button.new()
@@ -256,9 +285,73 @@ func _make_hud_button(parent: Control, text_value: String, offset: Vector2, butt
 	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	button.position = offset
 	button.size = button_size
-	button.add_theme_font_size_override("font_size", 17)
+	button.add_theme_font_size_override("font_size", 15)
+	button.modulate = Color(0.88, 0.94, 0.96, 0.88)
+	button.gui_input.connect(_on_hud_button_input.bind(button))
 	parent.add_child(button)
 	return button
+
+func _create_customize_panel(parent: Control) -> void:
+	customize_panel = PanelContainer.new()
+	customize_panel.anchor_left = 0.5
+	customize_panel.anchor_top = 0.5
+	customize_panel.anchor_right = 0.5
+	customize_panel.anchor_bottom = 0.5
+	customize_panel.offset_left = -145
+	customize_panel.offset_top = -105
+	customize_panel.offset_right = 145
+	customize_panel.offset_bottom = 105
+	customize_panel.visible = false
+	parent.add_child(customize_panel)
+	var column := VBoxContainer.new()
+	customize_panel.add_child(column)
+	var heading := Label.new()
+	heading.text = "NEW HUD CUSTOMIZE"
+	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	heading.add_theme_font_size_override("font_size", 20)
+	column.add_child(heading)
+	var info := Label.new()
+	info.text = "EDIT mode ON karke FIRE / JUMP / SWAP buttons ko drag karein."
+	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(info)
+	var edit := Button.new()
+	edit.text = "EDIT MODE: OFF"
+	edit.pressed.connect(func():
+		hud_edit_mode = not hud_edit_mode
+		edit.text = "EDIT MODE: ON" if hud_edit_mode else "EDIT MODE: OFF"
+	)
+	column.add_child(edit)
+	var close := Button.new()
+	close.text = "CLOSE"
+	close.pressed.connect(_toggle_customize_panel)
+	column.add_child(close)
+
+func _toggle_customize_panel() -> void:
+	if is_instance_valid(customize_panel):
+		customize_panel.visible = not customize_panel.visible
+		if not customize_panel.visible:
+			hud_edit_mode = false
+
+func _on_hud_button_input(event: InputEvent, button: Control) -> void:
+	if not hud_edit_mode:
+		return
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			dragging_hud_button = button
+			drag_offset = button.global_position - event.position
+		elif dragging_hud_button == button:
+			dragging_hud_button = null
+	elif event is InputEventScreenDrag and dragging_hud_button == button:
+		button.global_position = event.position + drag_offset
+	elif event is InputEventMouseButton:
+		if event.pressed:
+			dragging_hud_button = button
+			drag_offset = button.global_position - get_viewport().get_mouse_position()
+		else:
+			dragging_hud_button = null
+	elif event is InputEventMouseMotion and dragging_hud_button == button:
+		button.global_position = get_viewport().get_mouse_position() + drag_offset
 
 func _on_joystick_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
