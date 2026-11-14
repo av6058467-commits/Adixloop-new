@@ -23,6 +23,16 @@ var hud_edit_mode := false
 var dragging_hud_button: Control
 var drag_offset := Vector2.ZERO
 var weapon_slot_buttons: Array[Button] = []
+var hud_elements: Dictionary = {}
+var selected_hud_element: Control
+var hud_size_slider: HSlider
+var hud_alpha_slider: HSlider
+var hud_element_name: Label
+var health_bar: ProgressBar
+var ammo_panel: PanelContainer
+var mini_map_panel: PanelContainer
+var joystick_control: Control
+var joystick_knob: ColorRect
 
 func _ready() -> void:
 	_setup_world()
@@ -46,6 +56,8 @@ func _process(delta: float) -> void:
 		var heading := fposmod(rad_to_deg(player.rotation.y), 360.0)
 		var directions := ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]
 		compass_label.text = "%s  |  %03d°" % [directions[int(round(heading / 45.0)) % 8], int(heading)]
+	if is_instance_valid(health_bar):
+		health_bar.value = player.health
 	if is_instance_valid(status_label):
 		var reload_text := " | RELOADING" if player.is_reloading else ""
 		status_label.text = "ADIX BR | RIVALS: %d | ELIMS: %d | HP: %d | %s %d/%d +%d%s | %02d:%02d" % [alive, kills, int(player.health), player.weapon_name, player.ammo_in_magazine, player.magazine_size, player.reserve_ammo, reload_text, int(match_time) / 60, int(match_time) % 60]
@@ -214,86 +226,163 @@ func _restart_match() -> void:
 
 func _setup_hud() -> void:
 	var layer := CanvasLayer.new()
+	layer.layer = 2
 	add_child(layer)
 	var root := Control.new()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root)
-	status_label = Label.new()
-	status_label.position = Vector2(18, 14)
-	status_label.add_theme_font_size_override("font_size", 17)
-	status_label.add_theme_color_override("font_color", Color.WHITE)
-	root.add_child(status_label)
-	compass_label = Label.new()
-	compass_label.anchor_left = 0.5
-	compass_label.anchor_right = 0.5
-	compass_label.offset_left = -110
-	compass_label.offset_right = 110
-	compass_label.offset_top = 14
-	compass_label.offset_bottom = 46
-	compass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	compass_label.add_theme_font_size_override("font_size", 21)
-	compass_label.add_theme_color_override("font_color", Color(0.95, 0.91, 0.72))
-	root.add_child(compass_label)
-	var hint := Label.new()
-	hint.text = "MOVE: LEFT STICK | LOOK: DRAG RIGHT | Q: SWITCH | R: RELOAD"
-	hint.position = Vector2(18, 44)
-	hint.add_theme_font_size_override("font_size", 13)
-	hint.add_theme_color_override("font_color", Color(0.82, 0.88, 0.91))
-	root.add_child(hint)
-	var joystick := Control.new()
-	joystick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	joystick.position = Vector2(28, -178)
-	joystick.custom_minimum_size = Vector2(150, 150)
-	joystick.gui_input.connect(_on_joystick_input)
-	root.add_child(joystick)
-	var base := ColorRect.new()
-	base.color = Color(0.08, 0.12, 0.15, 0.42)
-	base.size = Vector2(145, 145)
-	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	joystick.add_child(base)
-	var knob := ColorRect.new()
-	knob.color = Color(0.65, 0.75, 0.78, 0.75)
-	knob.position = Vector2(48, 48)
-	knob.size = Vector2(49, 49)
-	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	joystick.add_child(knob)
-	var fire := _make_hud_button(root, "✦ FIRE", Vector2(-112, -128), Vector2(96, 88))
-	fire.button_down.connect(func(): fire_held = true)
-	fire.button_up.connect(func(): fire_held = false)
-	_make_hud_button(root, "↻ RELOAD", Vector2(-220, -112), Vector2(96, 52)).pressed.connect(func(): player.reload_weapon())
-	_make_hud_button(root, "⇄ SWAP", Vector2(-220, -174), Vector2(96, 52)).pressed.connect(func(): player.switch_weapon())
-	_create_weapon_slot_buttons(root)
-	_make_hud_button(root, "↑ JUMP", Vector2(-220, -236), Vector2(96, 52)).pressed.connect(func(): player.jump())
-	_make_hud_button(root, "⊕ ZOOM", Vector2(-350, -112), Vector2(100, 54)).pressed.connect(func(): player.toggle_zoom())
-	var customize := Button.new()
-	customize.text = "⚙ HUD NEW"
-	customize.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	customize.position = Vector2(18, -72)
-	customize.size = Vector2(126, 48)
-	customize.pressed.connect(_toggle_customize_panel)
-	root.add_child(customize)
+
+	# Right-side camera look zone sits behind all buttons.
 	var look_area := Control.new()
-	look_area.anchor_left = 0.48
-	look_area.anchor_top = 0.13
+	look_area.anchor_left = 0.38
+	look_area.anchor_top = 0.12
 	look_area.anchor_right = 1.0
-	look_area.anchor_bottom = 0.70
-	look_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	look_area.anchor_bottom = 0.88
+	look_area.mouse_filter = Control.MOUSE_FILTER_PASS
 	look_area.gui_input.connect(_on_look_input)
 	root.add_child(look_area)
+
+	# Top information strip and compass.
+	status_label = _make_hud_label(root, "ADIX BR  |  RIVALS: 8  |  KILLS: 0", Vector2(18, 14), Vector2(270, 30), 15)
+	compass_label = _make_hud_label(root, "W 285   NW 330   N 000   NE 060   E", Vector2(0, 12), Vector2(390, 30), 17)
+	compass_label.anchor_left = 0.5
+	compass_label.anchor_right = 0.5
+	compass_label.offset_left = -195
+	compass_label.offset_right = 195
+	compass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var live_label := _make_hud_label(root, "● LIVE  08", Vector2(-300, 14), Vector2(112, 34), 15)
+	live_label.anchor_left = 1.0
+	live_label.anchor_right = 1.0
+	var kill_label := _make_hud_label(root, "◎ KILL  00", Vector2(-180, 14), Vector2(112, 34), 15)
+	kill_label.anchor_left = 1.0
+	kill_label.anchor_right = 1.0
+
+	# Minimap / team strip on the upper-left, like the supplied layout.
+	mini_map_panel = PanelContainer.new()
+	mini_map_panel.position = Vector2(16, 52)
+	mini_map_panel.custom_minimum_size = Vector2(174, 148)
+	root.add_child(mini_map_panel)
+	var map_column := VBoxContainer.new()
+	mini_map_panel.add_child(map_column)
+	var map_title := Label.new()
+	map_title.text = "ADIX  |  TACTICAL MAP"
+	map_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	map_column.add_child(map_title)
+	var map_face := ColorRect.new()
+	map_face.custom_minimum_size = Vector2(164, 98)
+	map_face.color = Color(0.10, 0.19, 0.17, 0.95)
+	map_column.add_child(map_face)
+	var map_text := Label.new()
+	map_text.text = "     N\n  ·  ◉  ·\n SAFE AREA"
+	map_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	map_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	map_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	map_face.add_child(map_text)
+	var team_label := _make_hud_label(root, "1  OPERATOR\n2  RIVAL\n3  RIVAL\n4  RIVAL", Vector2(18, 208), Vector2(170, 90), 13)
+
+	# Left-side utility controls and movement stick.
+	_make_hud_button(root, "BAG", Vector2(26, -360), Vector2(66, 62), "bag")
+	_make_hud_button(root, "MED", Vector2(26, -282), Vector2(66, 62), "med")
+	_make_hud_button(root, "PING", Vector2(26, -204), Vector2(66, 62), "ping")
+	joystick_control = Control.new()
+	joystick_control.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	joystick_control.position = Vector2(145, -188)
+	joystick_control.size = Vector2(142, 142)
+	joystick_control.gui_input.connect(_on_joystick_input)
+	root.add_child(joystick_control)
+	var stick_base := ColorRect.new()
+	stick_base.color = Color(0.035, 0.055, 0.07, 0.66)
+	stick_base.size = Vector2(142, 142)
+	stick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_control.add_child(stick_base)
+	joystick_knob = ColorRect.new()
+	joystick_knob.color = Color(0.78, 0.84, 0.87, 0.88)
+	joystick_knob.position = Vector2(46, 46)
+	joystick_knob.size = Vector2(50, 50)
+	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick_control.add_child(joystick_knob)
+	_register_hud_element("MOVE", joystick_control)
+
+	# Right weapon card, three gun slots + fist, and combat actions.
+	ammo_panel = PanelContainer.new()
+	ammo_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	ammo_panel.position = Vector2(-270, 58)
+	ammo_panel.custom_minimum_size = Vector2(250, 88)
+	root.add_child(ammo_panel)
+	var ammo_text := Label.new()
+	ammo_text.name = "AmmoText"
+	ammo_text.text = "12 / 48     SIDEARM"
+	ammo_text.add_theme_font_size_override("font_size", 22)
+	ammo_panel.add_child(ammo_text)
+	_register_hud_element("AMMO", ammo_panel)
+	_create_weapon_slot_buttons(root)
+	var fire := _make_hud_button(root, "FIRE", Vector2(-150, -178), Vector2(118, 118), "fire")
+	fire.button_down.connect(func(): fire_held = true)
+	fire.button_up.connect(func(): fire_held = false)
+	_make_hud_button(root, "AIM", Vector2(-150, -310), Vector2(72, 66), "aim")
+	_make_hud_button(root, "JUMP", Vector2(-78, -280), Vector2(72, 66), "jump")
+	_make_hud_button(root, "RELOAD", Vector2(-250, -170), Vector2(82, 58), "reload")
+	_make_hud_button(root, "SWAP", Vector2(-250, -238), Vector2(82, 58), "swap")
+	_make_hud_button(root, "ZOOM", Vector2(-250, -306), Vector2(82, 58), "zoom")
+	_make_hud_button(root, "THROW", Vector2(-330, -170), Vector2(68, 58), "throw")
+	_make_hud_button(root, "CROUCH", Vector2(-82, -205), Vector2(72, 58), "crouch")
+	_make_hud_button(root, "PRONE", Vector2(-82, -140), Vector2(72, 58), "prone")
+
+	# Bottom-center health bar.
+	var health_row := HBoxContainer.new()
+	health_row.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	health_row.position = Vector2(-180, -42)
+	health_row.size = Vector2(360, 28)
+	root.add_child(health_row)
+	var hp_caption := Label.new()
+	hp_caption.text = "HP"
+	hp_caption.add_theme_color_override("font_color", Color.WHITE)
+	health_row.add_child(hp_caption)
+	health_bar = ProgressBar.new()
+	health_bar.custom_minimum_size = Vector2(320, 22)
+	health_bar.max_value = 100
+	health_bar.value = 100
+	health_row.add_child(health_bar)
+	_register_hud_element("HEALTH", health_row)
+
+	var customize := Button.new()
+	customize.text = "HUD CUSTOMIZE"
+	customize.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	customize.position = Vector2(18, -58)
+	customize.size = Vector2(142, 42)
+	customize.pressed.connect(_toggle_customize_panel)
+	root.add_child(customize)
 	_create_customize_panel(root)
+	_load_hud_layout()
+
+func _make_hud_label(parent: Control, value: String, pos: Vector2, dimensions: Vector2, font_size: int) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.position = pos
+	label.size = dimensions
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", Color(0.96, 0.97, 0.98))
+	parent.add_child(label)
+	return label
+
+func _register_hud_element(element_name: String, control: Control) -> void:
+	hud_elements[element_name] = control
+	control.gui_input.connect(_on_hud_button_input.bind(control))
 
 func _create_weapon_slot_buttons(parent: Control) -> void:
 	var slot_titles := ["GUN 1", "GUN 2", "GUN 3", "FIST"]
 	for slot in range(4):
 		var slot_button := Button.new()
-		slot_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		slot_button.position = Vector2(-92, -380 + slot * 62)
-		slot_button.size = Vector2(82, 56)
+		slot_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		slot_button.position = Vector2(-270 + slot * 68, 154)
+		slot_button.size = Vector2(64, 58)
 		slot_button.text = slot_titles[slot]
-		slot_button.add_theme_font_size_override("font_size", 12)
+		slot_button.add_theme_font_size_override("font_size", 11)
 		slot_button.pressed.connect(_select_weapon_slot.bind(slot))
 		parent.add_child(slot_button)
 		weapon_slot_buttons.append(slot_button)
+		_register_hud_element("SLOT_%d" % (slot + 1), slot_button)
 	_update_weapon_slot_hud()
 
 func _select_weapon_slot(slot: int) -> void:
@@ -313,18 +402,42 @@ func _update_weapon_slot_hud() -> void:
 		var ammo_label := "MELEE" if str(data.get("kind", "gun")) == "melee" else "%d/%d" % [int(data.get("ammo", 0)), int(data.get("reserve", 0))]
 		weapon_slot_buttons[slot].text = "%s\n%s\n%s" % ["▶" if player.active_slot == slot else " ", weapon_label, ammo_label]
 		weapon_slot_buttons[slot].modulate = Color(1.0, 0.88, 0.48, 1.0) if player.active_slot == slot else Color(0.78, 0.86, 0.90, 0.88)
+	if is_instance_valid(ammo_panel):
+		var ammo_label: Label = ammo_panel.get_node("AmmoText")
+		ammo_label.text = "%d / %d    %s" % [player.ammo_in_magazine, player.reserve_ammo, player.weapon_name]
 
-func _make_hud_button(parent: Control, text_value: String, offset: Vector2, button_size: Vector2) -> Button:
+func _make_hud_button(parent: Control, text_value: String, offset: Vector2, button_size: Vector2, action: String) -> Button:
 	var button := Button.new()
 	button.text = text_value
 	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	button.position = offset
 	button.size = button_size
-	button.add_theme_font_size_override("font_size", 15)
-	button.modulate = Color(0.88, 0.94, 0.96, 0.88)
+	button.add_theme_font_size_override("font_size", 14)
+	button.modulate = Color(0.9, 0.94, 0.97, 0.9)
+	button.pressed.connect(_on_hud_action.bind(action))
 	button.gui_input.connect(_on_hud_button_input.bind(button))
 	parent.add_child(button)
+	_register_hud_element(action.to_upper(), button)
 	return button
+
+func _on_hud_action(action: String) -> void:
+	if not is_instance_valid(player):
+		return
+	match action:
+		"reload": player.reload_weapon()
+		"swap": player.switch_weapon()
+		"jump": player.jump()
+		"zoom", "aim": player.toggle_zoom()
+		"med": player.heal(25.0)
+		"bag": _show_hud_message("BACKPACK: loot inventory prototype")
+		"ping": _show_hud_message("PING MARKER")
+		"throw": _show_hud_message("THROWABLES: not equipped")
+		"crouch": _show_hud_message("CROUCH: animation/control pending")
+		"prone": _show_hud_message("PRONE: animation/control pending")
+
+func _show_hud_message(message: String) -> void:
+	if is_instance_valid(status_label):
+		status_label.text = message
 
 func _create_customize_panel(parent: Control) -> void:
 	customize_panel = PanelContainer.new()
@@ -332,24 +445,43 @@ func _create_customize_panel(parent: Control) -> void:
 	customize_panel.anchor_top = 0.5
 	customize_panel.anchor_right = 0.5
 	customize_panel.anchor_bottom = 0.5
-	customize_panel.offset_left = -145
-	customize_panel.offset_top = -105
-	customize_panel.offset_right = 145
-	customize_panel.offset_bottom = 105
+	customize_panel.offset_left = -155
+	customize_panel.offset_top = -150
+	customize_panel.offset_right = 155
+	customize_panel.offset_bottom = 150
 	customize_panel.visible = false
 	parent.add_child(customize_panel)
 	var column := VBoxContainer.new()
 	customize_panel.add_child(column)
 	var heading := Label.new()
-	heading.text = "NEW HUD CUSTOMIZE"
+	heading.text = "ADIX HUD CUSTOMIZE"
 	heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	heading.add_theme_font_size_override("font_size", 20)
+	heading.add_theme_font_size_override("font_size", 19)
 	column.add_child(heading)
-	var info := Label.new()
-	info.text = "EDIT mode ON karke FIRE / JUMP / SWAP buttons ko drag karein."
-	info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	column.add_child(info)
+	hud_element_name = Label.new()
+	hud_element_name.text = "Select a control, then drag it"
+	hud_element_name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	column.add_child(hud_element_name)
+	var size_label := Label.new()
+	size_label.text = "BUTTON SIZE"
+	column.add_child(size_label)
+	hud_size_slider = HSlider.new()
+	hud_size_slider.min_value = 0.65
+	hud_size_slider.max_value = 1.5
+	hud_size_slider.step = 0.05
+	hud_size_slider.value = 1.0
+	hud_size_slider.value_changed.connect(_on_hud_size_changed)
+	column.add_child(hud_size_slider)
+	var alpha_label := Label.new()
+	alpha_label.text = "TRANSPARENCY"
+	column.add_child(alpha_label)
+	hud_alpha_slider = HSlider.new()
+	hud_alpha_slider.min_value = 0.25
+	hud_alpha_slider.max_value = 1.0
+	hud_alpha_slider.step = 0.05
+	hud_alpha_slider.value = 0.9
+	hud_alpha_slider.value_changed.connect(_on_hud_alpha_changed)
+	column.add_child(hud_alpha_slider)
 	var edit := Button.new()
 	edit.text = "EDIT MODE: OFF"
 	edit.pressed.connect(func():
@@ -357,6 +489,14 @@ func _create_customize_panel(parent: Control) -> void:
 		edit.text = "EDIT MODE: ON" if hud_edit_mode else "EDIT MODE: OFF"
 	)
 	column.add_child(edit)
+	var save := Button.new()
+	save.text = "SAVE LAYOUT"
+	save.pressed.connect(_save_hud_layout)
+	column.add_child(save)
+	var reset := Button.new()
+	reset.text = "RESET LAYOUT"
+	reset.pressed.connect(_reset_hud_layout)
+	column.add_child(reset)
 	var close := Button.new()
 	close.text = "CLOSE"
 	close.pressed.connect(_toggle_customize_panel)
@@ -368,11 +508,22 @@ func _toggle_customize_panel() -> void:
 		if not customize_panel.visible:
 			hud_edit_mode = false
 
+func _on_hud_size_changed(value: float) -> void:
+	if is_instance_valid(selected_hud_element):
+		selected_hud_element.scale = Vector2.ONE * value
+
+func _on_hud_alpha_changed(value: float) -> void:
+	if is_instance_valid(selected_hud_element):
+		var tint := selected_hud_element.modulate
+		tint.a = value
+		selected_hud_element.modulate = tint
+
 func _on_hud_button_input(event: InputEvent, button: Control) -> void:
 	if not hud_edit_mode:
 		return
 	if event is InputEventScreenTouch:
 		if event.pressed:
+			_select_hud_element(button)
 			dragging_hud_button = button
 			drag_offset = button.global_position - event.position
 		elif dragging_hud_button == button:
@@ -381,12 +532,57 @@ func _on_hud_button_input(event: InputEvent, button: Control) -> void:
 		button.global_position = event.position + drag_offset
 	elif event is InputEventMouseButton:
 		if event.pressed:
+			_select_hud_element(button)
 			dragging_hud_button = button
 			drag_offset = button.global_position - get_viewport().get_mouse_position()
 		else:
 			dragging_hud_button = null
 	elif event is InputEventMouseMotion and dragging_hud_button == button:
 		button.global_position = get_viewport().get_mouse_position() + drag_offset
+
+func _select_hud_element(control: Control) -> void:
+	selected_hud_element = control
+	if is_instance_valid(hud_element_name):
+		hud_element_name.text = control.name
+	if is_instance_valid(hud_size_slider):
+		hud_size_slider.value = control.scale.x
+	if is_instance_valid(hud_alpha_slider):
+		hud_alpha_slider.value = control.modulate.a
+
+func _save_hud_layout() -> void:
+	var config := ConfigFile.new()
+	for element_name in hud_elements.keys():
+		var control: Control = hud_elements[element_name]
+		config.set_value("hud", element_name, {
+			"position": [control.position.x, control.position.y],
+			"scale": control.scale.x,
+			"alpha": control.modulate.a
+		})
+	config.save("user://adix_hud_layout.cfg")
+	_show_hud_message("HUD LAYOUT SAVED")
+
+func _load_hud_layout() -> void:
+	var config := ConfigFile.new()
+	if config.load("user://adix_hud_layout.cfg") != OK:
+		return
+	for element_name in hud_elements.keys():
+		if not config.has_section_key("hud", element_name):
+			continue
+		var control: Control = hud_elements[element_name]
+		var data: Dictionary = config.get_value("hud", element_name, {})
+		var saved_pos: Array = data.get("position", [control.position.x, control.position.y])
+		control.position = Vector2(float(saved_pos[0]), float(saved_pos[1]))
+		var saved_scale := float(data.get("scale", 1.0))
+		control.scale = Vector2.ONE * saved_scale
+		var tint := control.modulate
+		tint.a = float(data.get("alpha", tint.a))
+		control.modulate = tint
+
+func _reset_hud_layout() -> void:
+	var config := ConfigFile.new()
+	config.clear()
+	config.save("user://adix_hud_layout.cfg")
+	get_tree().reload_current_scene()
 
 func _on_joystick_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
