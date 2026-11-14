@@ -11,7 +11,8 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 - Shrinking safe-zone ring and damage outside the radius
 - Health pickups
 - Sidearm and ADIX-R1 test weapon
-- Two weapon slots and weapon switching (Q / TAB or SWAP button)
+- Two weapon slots with direct tap-to-select HUD, active-slot highlight and ammo readout
+- Weapon switching via slot buttons, Q / TAB or SWAP button
 - Magazine ammo, reserve ammo, reload timer and ammo pickups
 - Victory / Defeat result panel with retry and exit controls
 - Mobile HUD buttons with original icon labels for FIRE, RELOAD, SWAP, JUMP and camera ZOOM
