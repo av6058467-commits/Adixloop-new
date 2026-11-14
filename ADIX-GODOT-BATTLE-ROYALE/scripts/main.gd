@@ -260,10 +260,10 @@ func _setup_hud() -> void:
 	var fire := _make_hud_button(root, "✦ FIRE", Vector2(-112, -128), Vector2(96, 88))
 	fire.button_down.connect(func(): fire_held = true)
 	fire.button_up.connect(func(): fire_held = false)
-	_make_hud_button(root, "↻ RELOAD", Vector2(-230, -112), Vector2(100, 54)).pressed.connect(func(): player.reload_weapon())
-	_make_hud_button(root, "⇄ SWAP", Vector2(-230, -178), Vector2(100, 54)).pressed.connect(func(): player.switch_weapon())
+	_make_hud_button(root, "↻ RELOAD", Vector2(-220, -112), Vector2(96, 52)).pressed.connect(func(): player.reload_weapon())
+	_make_hud_button(root, "⇄ SWAP", Vector2(-220, -174), Vector2(96, 52)).pressed.connect(func(): player.switch_weapon())
 	_create_weapon_slot_buttons(root)
-	_make_hud_button(root, "↑ JUMP", Vector2(-112, -232), Vector2(96, 58)).pressed.connect(func(): player.jump())
+	_make_hud_button(root, "↑ JUMP", Vector2(-220, -236), Vector2(96, 52)).pressed.connect(func(): player.jump())
 	_make_hud_button(root, "⊕ ZOOM", Vector2(-350, -112), Vector2(100, 54)).pressed.connect(func(): player.toggle_zoom())
 	var customize := Button.new()
 	customize.text = "⚙ HUD NEW"
@@ -283,32 +283,34 @@ func _setup_hud() -> void:
 	_create_customize_panel(root)
 
 func _create_weapon_slot_buttons(parent: Control) -> void:
-	for slot in range(2):
+	var slot_titles := ["GUN 1", "GUN 2", "GUN 3", "FIST"]
+	for slot in range(4):
 		var slot_button := Button.new()
 		slot_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-		slot_button.position = Vector2(-248 + slot * 112, -310)
-		slot_button.size = Vector2(104, 72)
-		slot_button.add_theme_font_size_override("font_size", 13)
+		slot_button.position = Vector2(-92, -380 + slot * 62)
+		slot_button.size = Vector2(82, 56)
+		slot_button.text = slot_titles[slot]
+		slot_button.add_theme_font_size_override("font_size", 12)
 		slot_button.pressed.connect(_select_weapon_slot.bind(slot))
 		parent.add_child(slot_button)
 		weapon_slot_buttons.append(slot_button)
 	_update_weapon_slot_hud()
 
 func _select_weapon_slot(slot: int) -> void:
-	if not is_instance_valid(player) or slot < 0 or slot > 1:
+	if not is_instance_valid(player) or slot < 0 or slot > 3:
 		return
 	player.select_weapon_slot(slot)
 	_update_weapon_slot_hud()
 
 func _update_weapon_slot_hud() -> void:
-	if not is_instance_valid(player) or weapon_slot_buttons.size() != 2:
+	if not is_instance_valid(player) or weapon_slot_buttons.size() != 4:
 		return
-	for slot in range(2):
+	for slot in range(4):
 		var data: Dictionary = player.weapon_slots[slot]
 		var weapon_label := str(data.get("name", "EMPTY"))
 		if weapon_label == "":
 			weapon_label = "EMPTY"
-		var ammo_label := "%d/%d" % [int(data.get("ammo", 0)), int(data.get("reserve", 0))]
+		var ammo_label := "MELEE" if str(data.get("kind", "gun")) == "melee" else "%d/%d" % [int(data.get("ammo", 0)), int(data.get("reserve", 0))]
 		weapon_slot_buttons[slot].text = "%s\n%s\n%s" % ["▶" if player.active_slot == slot else " ", weapon_label, ammo_label]
 		weapon_slot_buttons[slot].modulate = Color(1.0, 0.88, 0.48, 1.0) if player.active_slot == slot else Color(0.78, 0.86, 0.90, 0.88)
 
