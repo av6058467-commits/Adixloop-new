@@ -14,7 +14,9 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 - Two weapon slots and weapon switching (Q / TAB or SWAP button)
 - Magazine ammo, reserve ammo, reload timer and ammo pickups
 - Victory / Defeat result panel with retry and exit controls
-- Mobile HUD buttons for FIRE, RELOAD, SWAP and JUMP
+- Mobile HUD buttons with original icon labels for FIRE, RELOAD, SWAP, JUMP and camera ZOOM
+- NEW HUD Customize panel with edit mode for dragging combat buttons
+- Top compass heading indicator with cardinal directions and degree readout
 
 ## Open
 1. Install Godot 4.x from https://godotengine.org/download/
