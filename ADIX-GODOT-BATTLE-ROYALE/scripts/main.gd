@@ -415,7 +415,6 @@ func _make_hud_button(parent: Control, text_value: String, offset: Vector2, butt
 	button.add_theme_font_size_override("font_size", 14)
 	button.modulate = Color(0.9, 0.94, 0.97, 0.9)
 	button.pressed.connect(_on_hud_action.bind(action))
-	button.gui_input.connect(_on_hud_button_input.bind(button))
 	parent.add_child(button)
 	_register_hud_element(action.to_upper(), button)
 	return button
