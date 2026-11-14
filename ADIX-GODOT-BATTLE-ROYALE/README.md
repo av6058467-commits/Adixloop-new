@@ -4,7 +4,9 @@ Separate Godot 4 project. Early prototype only; not a finished game or verified 
 
 ## Authored prototype systems
 - Runtime-generated test arena, cover and simple trees
-- Third-person player capsule and camera
+- Full-body procedural operator model with head, torso, arms, legs and boots
+- Third-person follow camera framed to show the full character
+- Procedural idle, walk/run limb swing and jump pose
 - Desktop movement, mouse look and touch movement/look controls
 - Eight rival bots with simple chase/attack behavior
 - Hitscan shooting, bot health and elimination counter
