@@ -2,6 +2,8 @@ extends Node3D
 
 const PLAYER_SCRIPT = preload("res://scripts/player.gd")
 const BOT_SCRIPT = preload("res://scripts/bot.gd")
+const SAFE_ZONE_SCRIPT = preload("res://scripts/safe_zone.gd")
+const LOOT_SCRIPT = preload("res://scripts/loot_pickup.gd")
 var player
 var bots: Array = []
 var status_label: Label
@@ -9,11 +11,14 @@ var move_vector := Vector2.ZERO
 var fire_held := false
 var match_time := 0.0
 var kills := 0
+var safe_zone
 
 func _ready() -> void:
 	_setup_world()
 	_spawn_player()
 	_spawn_bots(8)
+	_spawn_loot(6)
+	_spawn_safe_zone()
 	_setup_hud()
 
 func _process(delta: float) -> void:
@@ -23,7 +28,7 @@ func _process(delta: float) -> void:
 		for bot in bots:
 			if is_instance_valid(bot) and bot.current_health > 0:
 				alive += 1
-		status_label.text = "ADIX BATTLE ROYALE   |   BOTS: %d   |   ELIMS: %d   |   %02d:%02d" % [alive, kills, int(match_time) / 60, int(match_time) % 60]
+		status_label.text = "ADIX BATTLE ROYALE | RIVALS: %d | ELIMS: %d | HP: %d | %02d:%02d" % [alive, kills, int(player.health), int(match_time) / 60, int(match_time) % 60]
 	if fire_held and is_instance_valid(player):
 		player.try_fire()
 
@@ -105,6 +110,19 @@ func _spawn_bots(count: int) -> void:
 		bot.setup(self, player)
 		bots.append(bot)
 
+func _spawn_loot(count: int) -> void:
+	for i in range(count):
+		var pickup := Area3D.new()
+		pickup.set_script(LOOT_SCRIPT)
+		pickup.position = Vector3(randf_range(-35, 35), 0.7, randf_range(-35, 35))
+		add_child(pickup)
+
+func _spawn_safe_zone() -> void:
+	safe_zone = Node3D.new()
+	safe_zone.set_script(SAFE_ZONE_SCRIPT)
+	add_child(safe_zone)
+	safe_zone.setup(player)
+
 func register_kill() -> void:
 	kills += 1
 
@@ -120,7 +138,7 @@ func _setup_hud() -> void:
 	status_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(status_label)
 	var hint := Label.new()
-	hint.text = "WASD / ARROWS: MOVE     MOUSE: LOOK     SPACE / FIRE: SHOOT"
+	hint.text = "WASD / ARROWS: MOVE | MOUSE: LOOK | FIRE: SHOOT | SPACE: JUMP"
 	hint.position = Vector2(24, 52)
 	hint.add_theme_color_override("font_color", Color(0.82, 0.88, 0.91))
 	root.add_child(hint)
