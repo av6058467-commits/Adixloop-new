@@ -17,6 +17,9 @@ var camera_pivot: Node3D
 var camera: Camera3D
 var weapon_slots: Array[Dictionary] = []
 var active_slot := 0
+var is_zoomed := false
+var normal_fov := 75.0
+var zoom_fov := 42.0
 
 func setup(owner_game) -> void:
 	game = owner_game
@@ -47,6 +50,7 @@ func setup(owner_game) -> void:
 	camera.position = Vector3(0, 2.3, 6.5)
 	camera.rotation_degrees.x = -12
 	camera.current = true
+	camera.fov = normal_fov
 	camera_pivot.add_child(camera)
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
@@ -60,6 +64,11 @@ func _unhandled_input(event: InputEvent) -> void:
 			reload_weapon()
 		elif event.keycode == KEY_Q or event.keycode == KEY_TAB:
 			switch_weapon()
+
+func toggle_zoom() -> void:
+	is_zoomed = not is_zoomed
+	if is_instance_valid(camera):
+		camera.fov = zoom_fov if is_zoomed else normal_fov
 
 func look_by(relative_motion: Vector2) -> void:
 	rotate_y(-relative_motion.x * 0.003)
