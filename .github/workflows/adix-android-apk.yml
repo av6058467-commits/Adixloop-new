@@ -62,11 +62,27 @@ jobs:
           wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -O "$RUNNER_TEMP/godot/templates.tpz"
           unzip -q -j "$RUNNER_TEMP/godot/templates.tpz" -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
 
+      - name: Configure Godot Android export settings
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$HOME/.config/godot" "$HOME/.android"
+          keytool -genkeypair -v -keystore "$HOME/.android/debug.keystore" -storepass android -keypass android -alias androiddebugkey -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+          cat > "$HOME/.config/godot/editor_settings-4.tres" <<EOF
+          [gd_resource type="EditorSettings" format=3]
+          [resource]
+          export/android/java_sdk_path = "$JAVA_HOME"
+          export/android/android_sdk_path = "$ANDROID_HOME"
+          export/android/debug_keystore = "$HOME/.android/debug.keystore"
+          export/android/debug_keystore_user = "androiddebugkey"
+          export/android/debug_keystore_pass = "android"
+          EOF
+
       - name: Validate Godot project
         shell: bash
         run: |
           set -euxo pipefail
-          "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --editor --quit
+          "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --editor --quit --verbose
 
       - name: Export Android APK
         shell: bash
