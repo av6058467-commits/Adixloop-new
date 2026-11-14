@@ -671,7 +671,7 @@ func _on_look_input(event: InputEvent) -> void:
 		elif event.index == look_touch_index:
 			look_touch_index = -1
 	elif event is InputEventScreenDrag and event.index == look_touch_index:
-		var delta_pos := event.position - last_look_position
+		var delta_pos: Vector2 = event.position - last_look_position
 		last_look_position = event.position
 		player.look_by(delta_pos)
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
