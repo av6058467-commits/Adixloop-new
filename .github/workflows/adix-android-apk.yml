@@ -12,37 +12,51 @@ permissions:
 
 jobs:
   export-android:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
         with:
-          packages: platform-tools
+          packages: platform-tools;platforms;android-35;build-tools;35.0.0
+
+      - name: Install Godot and Android export templates
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p "$RUNNER_TEMP/godot" "$HOME/.local/share/godot/export_templates/4.4.1.stable"
+          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip -O "$RUNNER_TEMP/godot/godot.zip"
+          unzip -q "$RUNNER_TEMP/godot/godot.zip" -d "$RUNNER_TEMP/godot/bin"
+          echo "GODOT_BIN=$RUNNER_TEMP/godot/bin/Godot_v4.4.1-stable_linux.x86_64" >> "$GITHUB_ENV"
+          chmod +x "$RUNNER_TEMP/godot/bin/Godot_v4.4.1-stable_linux.x86_64"
+          wget -q https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz -O "$RUNNER_TEMP/godot/templates.tpz"
+          unzip -q -j "$RUNNER_TEMP/godot/templates.tpz" -d "$HOME/.local/share/godot/export_templates/4.4.1.stable"
 
       - name: Validate GDScript project
+        shell: bash
         run: |
-          GODOT_BIN="$HOME/.local/share/godot/godot_executable/Godot_v4.4.1-stable_linux.x86_64"
+          set -euxo pipefail
           "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --editor --quit
 
-      - name: Export Android APK with Godot
-        id: export
-        uses: firebelley/godot-export@v8.0.0
-        with:
-          godot_executable_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_linux.x86_64.zip
-          godot_export_templates_download_url: https://github.com/godotengine/godot/releases/download/4.4.1-stable/Godot_v4.4.1-stable_export_templates.tpz
-          relative_project_path: ADIX-GODOT-BATTLE-ROYALE
-          export_debug: true
-          presets_to_export: Android
-          use_preset_export_path: true
-          cache: true
+      - name: Export Android APK
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p ADIX-GODOT-BATTLE-ROYALE/build
+          "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --export-debug Android ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
 
-      - name: Upload APK artifact
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: ADIX-BATTLE-ROYALE-Android-APK
-          path: ${{ steps.export.outputs.build_directory }}/Android/*.apk
+          path: ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
           if-no-files-found: error
           retention-days: 14
