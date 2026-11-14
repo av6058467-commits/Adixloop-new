@@ -48,7 +48,7 @@ jobs:
           set +o pipefail
           yes | sdkmanager --sdk_root="$ANDROID_HOME" --licenses
           set -o pipefail
-          sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          sdkmanager --sdk_root="$ANDROID_HOME" "platform-tools" "platforms;android-35" "build-tools;35.0.0" "cmdline-tools;latest" "cmake;3.10.2.4988404" "ndk;23.2.8568313"
 
       - name: Install Godot 4.4.1 and Android export templates
         shell: bash
@@ -86,10 +86,14 @@ jobs:
 
       - name: Export Android APK
         shell: bash
+        env:
+          GODOT_ANDROID_KEYSTORE_DEBUG_PATH: /home/runner/.android/debug.keystore
+          GODOT_ANDROID_KEYSTORE_DEBUG_USER: androiddebugkey
+          GODOT_ANDROID_KEYSTORE_DEBUG_PASSWORD: android
         run: |
           set -euxo pipefail
           mkdir -p ADIX-GODOT-BATTLE-ROYALE/build
-          "$GODOT_BIN" --headless --path ADIX-GODOT-BATTLE-ROYALE --export-debug Android ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
+          "$GODOT_BIN" --headless --verbose --path ADIX-GODOT-BATTLE-ROYALE --export-debug Android ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
           test -s ADIX-GODOT-BATTLE-ROYALE/build/ADIX-BATTLE-ROYALE-debug.apk
 
       - name: Upload APK artifact
