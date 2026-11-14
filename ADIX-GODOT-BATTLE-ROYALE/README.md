@@ -1,16 +1,17 @@
 # ADIX BATTLE ROYALE — Godot 4 prototype
 
-This is a new Godot 4 project, separate from the earlier Unity project. It is an early prototype foundation, not a finished battle royale or a verified APK.
+Separate Godot 4 project. Early prototype only; not a finished game or verified APK.
 
-## Prototype systems currently authored
-- Runtime-generated test arena with cover and simple trees
+## Authored prototype systems
+- Runtime-generated test arena, cover and simple trees
 - Third-person player capsule and camera
-- Desktop movement (WASD / arrow keys) and mouse look
-- Basic touch joystick, FIRE and JUMP controls
-- Eight simple rival bots that approach and attack the player
-- Hitscan shooting and bot health / elimination counter
-- Shrinking safe-zone ring with damage outside its radius
-- Green health pickups that restore player health
+- Desktop movement and basic touch movement control
+- Eight rival bots with simple chase/attack behavior
+- Hitscan shooting, bot health and elimination counter
+- Shrinking safe-zone ring and damage outside the radius
+- Health pickups
+- Sidearm and ADIX-R1 test weapon
+- Magazine ammo, reserve ammo, reload timer and ammo pickups
 
 ## Open
 1. Install Godot 4.x from https://godotengine.org/download/
@@ -18,11 +19,7 @@ This is a new Godot 4 project, separate from the earlier Unity project. It is an
 3. Open and run scenes/Main.tscn.
 
 ## Important
-This prototype has not yet been opened or compiled in the Godot editor in this environment. Android export templates, device testing, final art, animation, weapon inventory, loot variety, polished mobile camera controls, menus, audio, and APK export are still outstanding. Do not treat this as a finished game.
+This code has not yet been opened, compiled or device-tested in Godot in this environment. Final weapon models/animations, polished mobile camera controls, proper map, match flow, sound, menus, Android export setup and APK export are still outstanding.
 
-## Next milestones
-1. Verify and fix the project in Godot 4 editor.
-2. Improve mobile movement and camera touch-look.
-3. Add weapon inventory, ammo, pickups, and match results.
-4. Add an original island map and operator art.
-5. Optimize and test on Android before exporting APK.
+## Next
+Verify and fix in Godot editor, improve mobile controls, add weapon switching and match result flow, then build and test on Android.
