@@ -140,6 +140,15 @@ func equip_weapon(new_name: String, mag_size: int, reserve: int) -> void:
 	active_slot = found_slot
 	_apply_active_weapon()
 
+func select_weapon_slot(slot: int) -> void:
+	if slot < 0 or slot >= weapon_slots.size():
+		return
+	if str(weapon_slots[slot].get("name", "")) == "":
+		return
+	_save_active_weapon()
+	active_slot = slot
+	_apply_active_weapon()
+
 func switch_weapon() -> void:
 	_save_active_weapon()
 	var other_slot := 1 - active_slot
