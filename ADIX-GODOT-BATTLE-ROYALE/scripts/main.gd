@@ -13,6 +13,10 @@ var fire_held := false
 var match_time := 0.0
 var kills := 0
 var safe_zone
+var match_finished := false
+var result_panel: PanelContainer
+var look_touch_index := -1
+var last_look_position := Vector2.ZERO
 
 func _ready() -> void:
 	_setup_world()
@@ -24,16 +28,22 @@ func _ready() -> void:
 	_setup_hud()
 
 func _process(delta: float) -> void:
+	if match_finished:
+		return
 	match_time += delta
+	var alive := 0
+	for bot in bots:
+		if is_instance_valid(bot) and bot.current_health > 0:
+			alive += 1
 	if is_instance_valid(status_label):
-		var alive := 0
-		for bot in bots:
-			if is_instance_valid(bot) and bot.current_health > 0:
-				alive += 1
 		var reload_text := " | RELOADING" if player.is_reloading else ""
 		status_label.text = "ADIX BR | RIVALS: %d | ELIMS: %d | HP: %d | %s %d/%d +%d%s | %02d:%02d" % [alive, kills, int(player.health), player.weapon_name, player.ammo_in_magazine, player.magazine_size, player.reserve_ammo, reload_text, int(match_time) / 60, int(match_time) % 60]
 	if fire_held and is_instance_valid(player):
 		player.try_fire()
+	if player.health <= 0.0:
+		_finish_match(false)
+	elif alive == 0:
+		_finish_match(true)
 
 func _setup_world() -> void:
 	var world_env := WorldEnvironment.new()
@@ -141,6 +151,56 @@ func _spawn_safe_zone() -> void:
 func register_kill() -> void:
 	kills += 1
 
+func _finish_match(victory: bool) -> void:
+	if match_finished:
+		return
+	match_finished = true
+	fire_held = false
+	Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	_show_result(victory)
+
+func _show_result(victory: bool) -> void:
+	var layer := CanvasLayer.new()
+	layer.layer = 10
+	add_child(layer)
+	var shade := ColorRect.new()
+	shade.color = Color(0.015, 0.025, 0.035, 0.86)
+	shade.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(shade)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	layer.add_child(center)
+	result_panel = PanelContainer.new()
+	result_panel.custom_minimum_size = Vector2(360, 230)
+	center.add_child(result_panel)
+	var content := VBoxContainer.new()
+	content.alignment = BoxContainer.ALIGNMENT_CENTER
+	content.add_theme_constant_override("separation", 16)
+	result_panel.add_child(content)
+	var title := Label.new()
+	title.text = "VICTORY" if victory else "DEFEAT"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.add_theme_font_size_override("font_size", 42)
+	title.add_theme_color_override("font_color", Color(0.95, 0.78, 0.25) if victory else Color(0.92, 0.32, 0.28))
+	content.add_child(title)
+	var summary := Label.new()
+	summary.text = "Eliminations: %d\nSurvival time: %02d:%02d" % [kills, int(match_time) / 60, int(match_time) % 60]
+	summary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	content.add_child(summary)
+	var retry := Button.new()
+	retry.text = "PLAY AGAIN"
+	retry.custom_minimum_size = Vector2(180, 48)
+	retry.pressed.connect(_restart_match)
+	content.add_child(retry)
+	var quit := Button.new()
+	quit.text = "EXIT"
+	quit.custom_minimum_size = Vector2(180, 42)
+	quit.pressed.connect(func(): get_tree().quit())
+	content.add_child(quit)
+
+func _restart_match() -> void:
+	get_tree().reload_current_scene()
+
 func _setup_hud() -> void:
 	var layer := CanvasLayer.new()
 	add_child(layer)
@@ -148,56 +208,85 @@ func _setup_hud() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	layer.add_child(root)
 	status_label = Label.new()
-	status_label.position = Vector2(24, 18)
-	status_label.add_theme_font_size_override("font_size", 22)
+	status_label.position = Vector2(18, 14)
+	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_color", Color.WHITE)
 	root.add_child(status_label)
 	var hint := Label.new()
-	hint.text = "WASD / ARROWS: MOVE | MOUSE: LOOK | FIRE: SHOOT | R: RELOAD | SPACE: JUMP"
-	hint.position = Vector2(24, 52)
+	hint.text = "MOVE: LEFT STICK | LOOK: DRAG RIGHT | Q: SWITCH | R: RELOAD"
+	hint.position = Vector2(18, 44)
+	hint.add_theme_font_size_override("font_size", 14)
 	hint.add_theme_color_override("font_color", Color(0.82, 0.88, 0.91))
 	root.add_child(hint)
 	var joystick := Control.new()
-	joystick.position = Vector2(35, -185)
 	joystick.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	joystick.position = Vector2(28, -178)
 	joystick.custom_minimum_size = Vector2(150, 150)
 	joystick.gui_input.connect(_on_joystick_input)
 	root.add_child(joystick)
 	var base := ColorRect.new()
-	base.color = Color(0.08, 0.12, 0.15, 0.55)
+	base.color = Color(0.08, 0.12, 0.15, 0.42)
 	base.size = Vector2(145, 145)
 	base.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick.add_child(base)
-	var fire := Button.new()
-	fire.text = "FIRE"
-	fire.position = Vector2(-155, -145)
-	fire.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	fire.size = Vector2(125, 100)
-	fire.add_theme_font_size_override("font_size", 22)
+	var knob := ColorRect.new()
+	knob.color = Color(0.65, 0.75, 0.78, 0.75)
+	knob.position = Vector2(48, 48)
+	knob.size = Vector2(49, 49)
+	knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	joystick.add_child(knob)
+	var fire := _make_hud_button(root, "FIRE", Vector2(-112, -128), Vector2(96, 88))
 	fire.button_down.connect(func(): fire_held = true)
 	fire.button_up.connect(func(): fire_held = false)
-	root.add_child(fire)
-	var reload_button := Button.new()
-	reload_button.text = "RELOAD"
-	reload_button.position = Vector2(-290, -145)
-	reload_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	reload_button.size = Vector2(115, 62)
-	reload_button.pressed.connect(func(): player.reload_weapon())
-	root.add_child(reload_button)
-	var jump_button := Button.new()
-	jump_button.text = "JUMP"
-	jump_button.position = Vector2(-145, -270)
-	jump_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	jump_button.size = Vector2(105, 62)
-	jump_button.pressed.connect(func(): if is_instance_valid(player): player.jump())
-	root.add_child(jump_button)
+	_make_hud_button(root, "RELOAD", Vector2(-230, -112), Vector2(100, 54)).pressed.connect(func(): player.reload_weapon())
+	_make_hud_button(root, "SWAP", Vector2(-230, -178), Vector2(100, 54)).pressed.connect(func(): player.switch_weapon())
+	_make_hud_button(root, "JUMP", Vector2(-112, -232), Vector2(96, 58)).pressed.connect(func(): player.jump())
+	var look_area := Control.new()
+	look_area.anchor_left = 0.48
+	look_area.anchor_top = 0.13
+	look_area.anchor_right = 1.0
+	look_area.anchor_bottom = 0.70
+	look_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	look_area.gui_input.connect(_on_look_input)
+	root.add_child(look_area)
+
+func _make_hud_button(parent: Control, text_value: String, offset: Vector2, button_size: Vector2) -> Button:
+	var button := Button.new()
+	button.text = text_value
+	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	button.position = offset
+	button.size = button_size
+	button.add_theme_font_size_override("font_size", 17)
+	parent.add_child(button)
+	return button
 
 func _on_joystick_input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch and not event.pressed:
-		move_vector = Vector2.ZERO
+	if event is InputEventScreenTouch:
+		if not event.pressed:
+			move_vector = Vector2.ZERO
+		else:
+			_update_move_vector(event.position)
 	elif event is InputEventScreenDrag:
-		move_vector = (event.position - Vector2(72, 72)).limit_length(65) / 65.0
+		_update_move_vector(event.position)
 	elif event is InputEventMouseButton and not event.pressed:
 		move_vector = Vector2.ZERO
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		move_vector = (event.position - Vector2(72, 72)).limit_length(65) / 65.0
+		_update_move_vector(event.position)
+
+func _update_move_vector(pointer_position: Vector2) -> void:
+	var local_pos := pointer_position - Vector2(103, get_viewport().get_visible_rect().size.y - 103)
+	move_vector = (local_pos / 65.0).limit_length()
+
+func _on_look_input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		if event.pressed:
+			look_touch_index = event.index
+			last_look_position = event.position
+		elif event.index == look_touch_index:
+			look_touch_index = -1
+	elif event is InputEventScreenDrag and event.index == look_touch_index:
+		var delta_pos := event.position - last_look_position
+		last_look_position = event.position
+		player.look_by(delta_pos)
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_RIGHT):
+		player.look_by(event.relative)
