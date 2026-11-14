@@ -446,7 +446,10 @@ func _update_weapon_slot_hud() -> void:
 func _make_hud_button(parent: Control, text_value: String, offset: Vector2, button_size: Vector2, action: String) -> Button:
 	var button := Button.new()
 	button.text = text_value
-	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	if action in ["bag", "med", "ping", "sprint"]:
+		button.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	else:
+		button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	button.position = offset
 	button.size = button_size
 	button.add_theme_font_size_override("font_size", 27 if button_size.x >= 100 else 22)
@@ -642,18 +645,23 @@ func _on_joystick_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		if not event.pressed:
 			move_vector = Vector2.ZERO
+			if is_instance_valid(joystick_knob): joystick_knob.position = Vector2(66, 66)
 		else:
 			_update_move_vector(event.position)
 	elif event is InputEventScreenDrag:
 		_update_move_vector(event.position)
 	elif event is InputEventMouseButton and not event.pressed:
 		move_vector = Vector2.ZERO
+		if is_instance_valid(joystick_knob): joystick_knob.position = Vector2(66, 66)
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_update_move_vector(event.position)
 
 func _update_move_vector(pointer_position: Vector2) -> void:
-	var local_pos := pointer_position - Vector2(103, get_viewport().get_visible_rect().size.y - 103)
-	move_vector = (local_pos / 65.0).limit_length()
+	var center := joystick_control.global_position + joystick_control.size * 0.5
+	var local_pos := pointer_position - center
+	move_vector = (local_pos / 82.0).limit_length()
+	if is_instance_valid(joystick_knob):
+		joystick_knob.position = Vector2(66, 66) + move_vector * 42.0
 
 func _on_look_input(event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
