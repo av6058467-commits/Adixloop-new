@@ -5,9 +5,12 @@ const BOT_SCRIPT = preload("res://scripts/bot.gd")
 const SAFE_ZONE_SCRIPT = preload("res://scripts/safe_zone.gd")
 const LOOT_SCRIPT = preload("res://scripts/loot_pickup.gd")
 const WEAPON_PICKUP_SCRIPT = preload("res://scripts/weapon_pickup.gd")
+const HUD_MAP_SCRIPT = preload("res://scripts/hud_map.gd")
 var player
 var bots: Array = []
 var status_label: Label
+var live_counter: Label
+var kill_counter: Label
 var move_vector := Vector2.ZERO
 var fire_held := false
 var match_time := 0.0
@@ -60,7 +63,7 @@ func _process(delta: float) -> void:
 		health_bar.value = player.health
 	if is_instance_valid(status_label):
 		var reload_text := " | RELOADING" if player.is_reloading else ""
-		status_label.text = "ADIX BR | RIVALS: %d | ELIMS: %d | HP: %d | %s %d/%d +%d%s | %02d:%02d" % [alive, kills, int(player.health), player.weapon_name, player.ammo_in_magazine, player.magazine_size, player.reserve_ammo, reload_text, int(match_time) / 60, int(match_time) % 60]
+		status_label.text = "ALIVE %02d  |  %02d:%02d" % [alive + 1, int(match_time) / 60, int(match_time) % 60]
 	if fire_held and is_instance_valid(player):
 		player.try_fire()
 	if player.health <= 0.0:
@@ -233,128 +236,161 @@ func _setup_hud() -> void:
 	root.mouse_filter = Control.MOUSE_FILTER_PASS
 	layer.add_child(root)
 
-	# Right-side camera look zone sits behind all buttons.
-	var look_area := Control.new()
-	look_area.anchor_left = 0.38
-	look_area.anchor_top = 0.12
-	look_area.anchor_right = 1.0
-	look_area.anchor_bottom = 0.88
-	look_area.mouse_filter = Control.MOUSE_FILTER_PASS
-	look_area.gui_input.connect(_on_look_input)
-	root.add_child(look_area)
-
-	# Top information strip and compass.
-	status_label = _make_hud_label(root, "ADIX BR  |  RIVALS: 8  |  KILLS: 0", Vector2(18, 14), Vector2(270, 30), 15)
-	compass_label = _make_hud_label(root, "W 285   NW 330   N 000   NE 060   E", Vector2(0, 12), Vector2(390, 30), 17)
-	compass_label.anchor_left = 0.5
-	compass_label.anchor_right = 0.5
-	compass_label.offset_left = -195
-	compass_label.offset_right = 195
+	# Full-width top compass strip.
+	var compass_back := ColorRect.new()
+	compass_back.position = Vector2(420, 0)
+	compass_back.size = Vector2(690, 58)
+	compass_back.color = Color(0.025, 0.045, 0.065, 0.72)
+	root.add_child(compass_back)
+	compass_label = _make_hud_label(root, "W   285   300   NW   330   345    N    15   30   NE   60   75   E", Vector2(438, 14), Vector2(655, 34), 17)
 	compass_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	var live_label := _make_hud_label(root, "● LIVE  08", Vector2(-300, 14), Vector2(112, 34), 15)
-	live_label.anchor_left = 1.0
-	live_label.anchor_right = 1.0
-	var kill_label := _make_hud_label(root, "◎ KILL  00", Vector2(-180, 14), Vector2(112, 34), 15)
-	kill_label.anchor_left = 1.0
-	kill_label.anchor_right = 1.0
 
-	# Minimap / team strip on the upper-left, like the supplied layout.
-	mini_map_panel = PanelContainer.new()
-	mini_map_panel.position = Vector2(16, 52)
-	mini_map_panel.custom_minimum_size = Vector2(174, 148)
-	root.add_child(mini_map_panel)
-	var map_column := VBoxContainer.new()
-	mini_map_panel.add_child(map_column)
-	var map_title := Label.new()
-	map_title.text = "ADIX  |  TACTICAL MAP"
-	map_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_column.add_child(map_title)
-	var map_face := ColorRect.new()
-	map_face.custom_minimum_size = Vector2(164, 98)
-	map_face.color = Color(0.10, 0.19, 0.17, 0.95)
-	map_column.add_child(map_face)
-	var map_text := Label.new()
-	map_text.text = "     N\n  ·  ◉  ·\n SAFE AREA"
-	map_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	map_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	map_text.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	map_face.add_child(map_text)
-	var team_label := _make_hud_label(root, "1  OPERATOR\n2  RIVAL\n3  RIVAL\n4  RIVAL", Vector2(18, 208), Vector2(170, 90), 13)
+	# ADIX minimap, player marker and team panel.
+	var map_frame := PanelContainer.new()
+	map_frame.position = Vector2(16, 16)
+	map_frame.custom_minimum_size = Vector2(236, 214)
+	_style_panel(map_frame, Color(0.025, 0.035, 0.045, 0.94), 12)
+	root.add_child(map_frame)
+	var map_stack := VBoxContainer.new()
+	map_stack.add_theme_constant_override("separation", 2)
+	map_frame.add_child(map_stack)
+	var map_heading := _make_hud_label(map_stack, "ADIX  /  BATTLE ROYALE", Vector2.ZERO, Vector2(220, 28), 16)
+	map_heading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	var map_view := Control.new()
+	map_view.custom_minimum_size = Vector2(220, 174)
+	map_view.set_script(HUD_MAP_SCRIPT)
+	map_stack.add_child(map_view)
+	var team_panel := PanelContainer.new()
+	team_panel.position = Vector2(16, 240)
+	team_panel.custom_minimum_size = Vector2(236, 142)
+	_style_panel(team_panel, Color(0.025, 0.035, 0.045, 0.82), 8)
+	root.add_child(team_panel)
+	var team_list := VBoxContainer.new()
+	team_list.add_theme_constant_override("separation", 3)
+	team_panel.add_child(team_list)
+	for row in range(4):
+		var team_line := _make_hud_label(team_list, "%d   %s                         MIC" % [row + 1, ["ADIX_Player", "Rival_02", "Rival_03", "Rival_04"][row]], Vector2.ZERO, Vector2(218, 30), 14)
+		team_line.add_theme_color_override("font_color", [Color(0.28,0.85,0.95),Color(1.0,0.65,0.2),Color(0.72,0.4,0.95),Color(0.3,0.85,0.55)][row])
 
-	# Left-side utility controls and movement stick.
-	_make_hud_button(root, "BAG", Vector2(26, -360), Vector2(66, 62), "bag")
-	_make_hud_button(root, "MED", Vector2(26, -282), Vector2(66, 62), "med")
-	_make_hud_button(root, "PING", Vector2(26, -204), Vector2(66, 62), "ping")
+	# Left vertical quick actions.
+	_make_hud_button(root, "▣", Vector2(34, -430), Vector2(72, 72), "bag")
+	_make_hud_button(root, "✚", Vector2(34, -330), Vector2(72, 72), "med")
+	_make_hud_button(root, "ϟ", Vector2(34, -230), Vector2(72, 72), "ping")
+
+	# Large transparent movement joystick, bottom left.
 	joystick_control = Control.new()
 	joystick_control.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	joystick_control.position = Vector2(145, -188)
-	joystick_control.size = Vector2(142, 142)
+	joystick_control.position = Vector2(154, -192)
+	joystick_control.size = Vector2(204, 204)
 	joystick_control.gui_input.connect(_on_joystick_input)
 	root.add_child(joystick_control)
-	var stick_base := ColorRect.new()
-	stick_base.color = Color(0.035, 0.055, 0.07, 0.66)
-	stick_base.size = Vector2(142, 142)
-	stick_base.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	joystick_control.add_child(stick_base)
+	var stick_ring := Panel.new()
+	stick_ring.position = Vector2(0, 0)
+	stick_ring.size = Vector2(204, 204)
+	_style_panel(stick_ring, Color(0.025,0.035,0.045,0.34), 102)
+	joystick_control.add_child(stick_ring)
 	joystick_knob = ColorRect.new()
-	joystick_knob.color = Color(0.78, 0.84, 0.87, 0.88)
-	joystick_knob.position = Vector2(46, 46)
-	joystick_knob.size = Vector2(50, 50)
+	joystick_knob.position = Vector2(66, 66)
+	joystick_knob.size = Vector2(72, 72)
+	joystick_knob.color = Color(0.82,0.86,0.9,0.82)
 	joystick_knob.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	joystick_control.add_child(joystick_knob)
 	_register_hud_element("MOVE", joystick_control)
+	_make_hud_button(root, "➤", Vector2(174, -424), Vector2(92, 92), "sprint")
 
-	# Right weapon card, three gun slots + fist, and combat actions.
+	# Upper-right live / kill / settings.
+	var live_box := _make_top_right_panel(root, "♟ LIVE  %02d" % (bots.size() + 1), -420, 16, 170)
+	var kill_box := _make_top_right_panel(root, "◎ KILL  %02d" % kills, -240, 16, 150)
+	_make_hud_button(root, "⚙", Vector2(-66, -828), Vector2(54, 54), "settings")
+
+	# Weapon/ammo card and horizontal three-gun + fist selection row.
 	ammo_panel = PanelContainer.new()
 	ammo_panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	ammo_panel.position = Vector2(-270, 58)
-	ammo_panel.custom_minimum_size = Vector2(250, 88)
+	ammo_panel.position = Vector2(-370, 90)
+	ammo_panel.custom_minimum_size = Vector2(350, 108)
+	_style_panel(ammo_panel, Color(0.025,0.035,0.05,0.92), 12)
 	root.add_child(ammo_panel)
 	var ammo_text := Label.new()
 	ammo_text.name = "AmmoText"
-	ammo_text.text = "12 / 48     SIDEARM"
-	ammo_text.add_theme_font_size_override("font_size", 22)
+	ammo_text.text = "12 / 48     SIDEARM     AUTO"
+	ammo_text.add_theme_font_size_override("font_size", 27)
+	ammo_text.add_theme_color_override("font_color", Color.WHITE)
 	ammo_panel.add_child(ammo_text)
 	_register_hud_element("AMMO", ammo_panel)
 	_create_weapon_slot_buttons(root)
-	var fire := _make_hud_button(root, "FIRE", Vector2(-150, -178), Vector2(118, 118), "fire")
+
+	# Right edge utility controls and large fire / aim / stance controls.
+	_make_hud_button(root, "◉", Vector2(-330, -550), Vector2(76, 76), "throw")
+	_make_hud_button(root, "✚", Vector2(-230, -550), Vector2(76, 76), "med")
+	_make_hud_button(root, "▦", Vector2(-130, -550), Vector2(76, 76), "bag")
+	var fire := _make_hud_button(root, "✦", Vector2(-360, -320), Vector2(188, 188), "fire")
 	fire.button_down.connect(func(): fire_held = true)
 	fire.button_up.connect(func(): fire_held = false)
-	_make_hud_button(root, "AIM", Vector2(-150, -310), Vector2(72, 66), "aim")
-	_make_hud_button(root, "JUMP", Vector2(-78, -280), Vector2(72, 66), "jump")
-	_make_hud_button(root, "RELOAD", Vector2(-250, -170), Vector2(82, 58), "reload")
-	_make_hud_button(root, "SWAP", Vector2(-250, -238), Vector2(82, 58), "swap")
-	_make_hud_button(root, "ZOOM", Vector2(-250, -306), Vector2(82, 58), "zoom")
-	_make_hud_button(root, "THROW", Vector2(-330, -170), Vector2(68, 58), "throw")
-	_make_hud_button(root, "CROUCH", Vector2(-82, -205), Vector2(72, 58), "crouch")
-	_make_hud_button(root, "PRONE", Vector2(-82, -140), Vector2(72, 58), "prone")
+	_make_hud_button(root, "⊙", Vector2(-110, -405), Vector2(82, 82), "aim")
+	_make_hud_button(root, "➤", Vector2(-110, -285), Vector2(82, 82), "jump")
+	_make_hud_button(root, "⇄", Vector2(-410, -125), Vector2(76, 76), "swap")
+	_make_hud_button(root, "⌁", Vector2(-245, -125), Vector2(76, 76), "prone")
+	_make_hud_button(root, "♟", Vector2(-110, -165), Vector2(82, 82), "crouch")
+	_make_hud_button(root, "↻", Vector2(-410, -225), Vector2(76, 76), "reload")
 
 	# Bottom-center health bar.
-	var health_row := HBoxContainer.new()
-	health_row.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	health_row.position = Vector2(-180, -42)
-	health_row.size = Vector2(360, 28)
-	root.add_child(health_row)
-	var hp_caption := Label.new()
-	hp_caption.text = "HP"
-	hp_caption.add_theme_color_override("font_color", Color.WHITE)
-	health_row.add_child(hp_caption)
+	var hp_panel := PanelContainer.new()
+	hp_panel.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
+	hp_panel.position = Vector2(-250, -42)
+	hp_panel.custom_minimum_size = Vector2(500, 34)
+	_style_panel(hp_panel, Color(0.02,0.025,0.03,0.82), 14)
+	root.add_child(hp_panel)
+	var hp_row := HBoxContainer.new()
+	hp_row.add_theme_constant_override("separation", 8)
+	hp_panel.add_child(hp_row)
+	var hp_label := Label.new()
+	hp_label.text = "♥  HP"
+	hp_row.add_child(hp_label)
 	health_bar = ProgressBar.new()
-	health_bar.custom_minimum_size = Vector2(320, 22)
+	health_bar.custom_minimum_size = Vector2(430, 22)
 	health_bar.max_value = 100
 	health_bar.value = 100
-	health_row.add_child(health_bar)
-	_register_hud_element("HEALTH", health_row)
+	hp_row.add_child(health_bar)
+	_register_hud_element("HEALTH", hp_panel)
 
 	var customize := Button.new()
-	customize.text = "HUD CUSTOMIZE"
+	customize.text = "HUD EDIT"
 	customize.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	customize.position = Vector2(18, -58)
-	customize.size = Vector2(142, 42)
+	customize.position = Vector2(18, -52)
+	customize.size = Vector2(116, 38)
 	customize.pressed.connect(_toggle_customize_panel)
 	root.add_child(customize)
 	_create_customize_panel(root)
 	_load_hud_layout()
+
+func _style_panel(panel: Control, color: Color, radius: int) -> void:
+	var style := StyleBoxFlat.new()
+	style.bg_color = color
+	style.corner_radius_top_left = radius
+	style.corner_radius_top_right = radius
+	style.corner_radius_bottom_left = radius
+	style.corner_radius_bottom_right = radius
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.border_color = Color(0.72,0.78,0.82,0.72)
+	panel.add_theme_stylebox_override("panel", style)
+
+func _make_top_right_panel(parent: Control, text_value: String, x_offset: float, y_offset: float, width: float) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+	panel.position = Vector2(x_offset, y_offset)
+	panel.custom_minimum_size = Vector2(width, 42)
+	_style_panel(panel, Color(0.025,0.035,0.05,0.9), 10)
+	parent.add_child(panel)
+	var label := Label.new()
+	label.text = text_value
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 17)
+	panel.add_child(label)
+	return panel
 
 func _make_hud_label(parent: Control, value: String, pos: Vector2, dimensions: Vector2, font_size: int) -> Label:
 	var label := Label.new()
@@ -371,14 +407,15 @@ func _register_hud_element(element_name: String, control: Control) -> void:
 	control.gui_input.connect(_on_hud_button_input.bind(control))
 
 func _create_weapon_slot_buttons(parent: Control) -> void:
-	var slot_titles := ["GUN 1", "GUN 2", "GUN 3", "FIST"]
+	var slot_titles := ["▰  GUN 1", "▰  GUN 2", "▰  GUN 3", "✊  FIST"]
 	for slot in range(4):
 		var slot_button := Button.new()
 		slot_button.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		slot_button.position = Vector2(-270 + slot * 68, 154)
-		slot_button.size = Vector2(64, 58)
+		slot_button.position = Vector2(-370 + slot * 88, 208)
+		slot_button.size = Vector2(82, 84)
 		slot_button.text = slot_titles[slot]
-		slot_button.add_theme_font_size_override("font_size", 11)
+		slot_button.add_theme_font_size_override("font_size", 12)
+		_style_hud_button(slot_button, Color(0.035,0.045,0.06,0.92), 10)
 		slot_button.pressed.connect(_select_weapon_slot.bind(slot))
 		parent.add_child(slot_button)
 		weapon_slot_buttons.append(slot_button)
@@ -412,12 +449,28 @@ func _make_hud_button(parent: Control, text_value: String, offset: Vector2, butt
 	button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	button.position = offset
 	button.size = button_size
-	button.add_theme_font_size_override("font_size", 14)
-	button.modulate = Color(0.9, 0.94, 0.97, 0.9)
+	button.add_theme_font_size_override("font_size", 27 if button_size.x >= 100 else 22)
+	_style_hud_button(button, Color(0.025,0.035,0.045,0.78), 100 if button_size.x == button_size.y else 16)
 	button.pressed.connect(_on_hud_action.bind(action))
 	parent.add_child(button)
 	_register_hud_element(action.to_upper(), button)
 	return button
+
+func _style_hud_button(button: Button, color: Color, radius: int) -> void:
+	for state in ["normal", "hover", "pressed", "focus"]:
+		var style := StyleBoxFlat.new()
+		style.bg_color = color if state != "pressed" else color.lightened(0.18)
+		style.corner_radius_top_left = radius
+		style.corner_radius_top_right = radius
+		style.corner_radius_bottom_left = radius
+		style.corner_radius_bottom_right = radius
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 2
+		style.border_color = Color(0.88,0.9,0.92,0.9)
+		button.add_theme_stylebox_override(state, style)
+	button.add_theme_color_override("font_color", Color.WHITE)
 
 func _on_hud_action(action: String) -> void:
 	if not is_instance_valid(player):
@@ -431,6 +484,8 @@ func _on_hud_action(action: String) -> void:
 		"bag": _show_hud_message("BACKPACK: loot inventory prototype")
 		"ping": _show_hud_message("PING MARKER")
 		"throw": _show_hud_message("THROWABLES: not equipped")
+		"settings": _toggle_customize_panel()
+		"sprint": move_vector = move_vector.limit_length()
 		"crouch": _show_hud_message("CROUCH: animation/control pending")
 		"prone": _show_hud_message("PRONE: animation/control pending")
 
