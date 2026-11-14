@@ -5,6 +5,14 @@ var speed := 7.0
 var gravity := 22.0
 var health := 100.0
 var fire_cooldown := 0.0
+var reload_timer := 0.0
+var weapon_name := "SIDEARM"
+var magazine_size := 12
+var ammo_in_magazine := 12
+var reserve_ammo := 48
+var weapon_damage := 20.0
+var fire_interval := 0.28
+var is_reloading := false
 var camera_pivot: Node3D
 var camera: Camera3D
 
@@ -42,9 +50,19 @@ func _unhandled_input(event: InputEvent) -> void:
 		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x, -0.8, 0.5)
 	if event is InputEventKey and event.pressed and event.keycode == KEY_ESCAPE:
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE
+	if event is InputEventKey and event.pressed and event.keycode == KEY_R:
+		reload_weapon()
 
 func _physics_process(delta: float) -> void:
 	fire_cooldown = maxf(0.0, fire_cooldown - delta)
+	if is_reloading:
+		reload_timer -= delta
+		if reload_timer <= 0.0:
+			var needed := magazine_size - ammo_in_magazine
+			var loaded := mini(needed, reserve_ammo)
+			ammo_in_magazine += loaded
+			reserve_ammo -= loaded
+			is_reloading = false
 	var input_vec := Vector2.ZERO
 	if Input.is_key_pressed(KEY_A) or Input.is_key_pressed(KEY_LEFT): input_vec.x -= 1.0
 	if Input.is_key_pressed(KEY_D) or Input.is_key_pressed(KEY_RIGHT): input_vec.x += 1.0
@@ -70,14 +88,36 @@ func take_damage(amount: float) -> void:
 func heal(amount: float) -> void:
 	health = minf(100.0, health + amount)
 
-func try_fire() -> void:
-	if fire_cooldown > 0.0 or not is_instance_valid(camera):
+func equip_weapon(new_name: String, mag_size: int, reserve: int) -> void:
+	weapon_name = new_name
+	magazine_size = mag_size
+	ammo_in_magazine = mag_size
+	reserve_ammo = reserve
+	weapon_damage = 26.0
+	fire_interval = 0.16
+	is_reloading = false
+
+func add_ammo(amount: int) -> void:
+	reserve_ammo += amount
+
+func reload_weapon() -> void:
+	if is_reloading or ammo_in_magazine >= magazine_size or reserve_ammo <= 0:
 		return
-	fire_cooldown = 0.22
+	is_reloading = true
+	reload_timer = 1.5
+
+func try_fire() -> void:
+	if is_reloading or fire_cooldown > 0.0 or not is_instance_valid(camera):
+		return
+	if ammo_in_magazine <= 0:
+		reload_weapon()
+		return
+	fire_cooldown = fire_interval
+	ammo_in_magazine -= 1
 	var origin := camera.global_position
 	var direction := -camera.global_transform.basis.z
 	var query := PhysicsRayQueryParameters3D.create(origin, origin + direction * 90.0)
 	query.exclude = [get_rid()]
 	var hit := get_world_3d().direct_space_state.intersect_ray(query)
 	if hit and hit.collider and hit.collider.has_method("take_damage"):
-		hit.collider.take_damage(34.0)
+		hit.collider.take_damage(weapon_damage)
